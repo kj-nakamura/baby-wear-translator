@@ -42,31 +42,39 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - age_in_months
-                  - items
-                properties:
-                  age_in_months:
-                    type: integer
-                    description: Calculated age in months
-                    example: 4
-                  items:
-                    type: array
-                    description: List of recommended items
-                    items:
-                      type: object
-                      required:
-                        - universal_name
-                        - shop_specific_name
-                      properties:
-                        universal_name:
-                          type: string
-                          description: Universal name of the item (e.g., combi-hadagi)
-                          example: "コンビ肌着"
-                        shop_specific_name:
-                          type: string
-                          description: Shop-specific name of the item
-                          example: "コットンフライスコンビ肌着"
+                $ref: '#/components/schemas/RecommendationResponse'
         '400':
           description: Invalid input parameters
+
+components:
+  schemas:
+    Item:
+      type: object
+      required:
+        - universal_name
+        - shop_specific_name
+      properties:
+        universal_name:
+          type: string
+          description: Universal name of the item (e.g., combi-hadagi)
+          example: "コンビ肌着"
+        shop_specific_name:
+          type: string
+          description: Shop-specific name of the item
+          example: "コットンフライスコンビ肌着"
+    
+    RecommendationResponse:
+      type: object
+      required:
+        - age_in_months
+        - items
+      properties:
+        age_in_months:
+          type: integer
+          description: Calculated age in months
+          example: 4
+        items:
+          type: array
+          description: List of recommended items
+          items:
+            $ref: '#/components/schemas/Item'

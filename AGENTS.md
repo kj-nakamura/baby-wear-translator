@@ -106,8 +106,7 @@ Phase 4: バックエンド（Go）のAPI完成
 Phase 5: フロントエンド（Next.js）の実装
 APIが完成したら、TypeScriptで画面を作ります。
 
-ステップ11: APIクライアントの作成
-
+ステップ11: APIクライアントの作成 [x]
 「frontend側で、openapi-typescriptで生成された型を利用して、GoのAPI（http://localhost:8080/recommend）を叩くための安全なフェッチ関数（カスタムフックなど）を作成して」
 
 ステップ12: 入力フォームコンポーネントの作成

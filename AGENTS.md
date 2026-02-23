@@ -73,7 +73,7 @@ Phase 1: プロジェクト基盤とAPI設計（スキーマ駆動の要）
 Phase 2: 型とインターフェースの自動生成
 書いた設計図をもとに、GoとTSのコードを生成します。ここは手動（コマンド実行）でもGeminicli経由でもOKです。
 
-ステップ3: Go側のコード生成（oapi-codegen）
+ステップ3: Go側のコード生成（oapi-codegen） [x]
 「oapi-codegenを使って、先ほどのopenapi.yamlから、Gin用のサーバーインターフェースと構造体（型）を生成するコマンドと設定（cfg.yamlなどが必要ならそれも）を教えて」
 
 ステップ4: TypeScript側のコード生成

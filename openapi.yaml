@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Baby Wear Translator API
+  description: API for recommending baby wear based on birth date and temperature, with shop-specific names.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local server
+paths:
+  /recommend:
+    get:
+      summary: Get recommended baby wear
+      description: Returns a list of recommended baby wear items based on the baby's age and current temperature.
+      operationId: getRecommendation
+      parameters:
+        - name: birth_date
+          in: query
+          description: Baby's birth date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2023-10-01"
+        - name: target_shop
+          in: query
+          description: Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo)
+          required: false
+          schema:
+            type: string
+            example: "uniqlo"
+        - name: current_temp
+          in: query
+          description: Current temperature in degrees Celsius
+          required: true
+          schema:
+            type: number
+            format: float
+            example: 15.5
+      responses:
+        '200':
+          description: Successful recommendation response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - age_in_months
+                  - items
+                properties:
+                  age_in_months:
+                    type: integer
+                    description: Calculated age in months
+                    example: 4
+                  items:
+                    type: array
+                    description: List of recommended items
+                    items:
+                      type: object
+                      required:
+                        - universal_name
+                        - shop_specific_name
+                      properties:
+                        universal_name:
+                          type: string
+                          description: Universal name of the item (e.g., combi-hadagi)
+                          example: "コンビ肌着"
+                        shop_specific_name:
+                          type: string
+                          description: Shop-specific name of the item
+                          example: "コットンフライスコンビ肌着"
+        '400':
+          description: Invalid input parameters

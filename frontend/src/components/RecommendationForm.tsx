@@ -6,32 +6,75 @@ interface RecommendationFormProps {
   onSubmit: (birthDate: string, currentTemp: number, targetShop: string) => void;
 }
 
+// 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
+function todayString(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
   const [birthDate, setBirthDate] = useState('');
   const [currentTemp, setCurrentTemp] = useState('20');
   const [targetShop, setTargetShop] = useState('nishimatsuya');
+  const [dateError, setDateError] = useState('');
+
+  const today = todayString();
+
+  const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBirthDate(value);
+
+    if (value && value > today) {
+      setDateError('生年月日は今日以前の日付を入力してください。');
+    } else {
+      setDateError('');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // submit 時にも再チェック
+    if (birthDate > today) {
+      setDateError('生年月日は今日以前の日付を入力してください。');
+      return;
+    }
+
     onSubmit(birthDate, parseFloat(currentTemp), targetShop);
   };
+
+  const hasDateError = !!dateError;
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md space-y-4 text-black">
       <div>
         <label className="block text-sm font-medium text-gray-700">赤ちゃんの生年月日</label>
         <input
+          id="birth-date-input"
           type="date"
           required
+          max={today}
           value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
+          onChange={handleBirthDateChange}
+          className={`mt-1 block w-full border rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 ${hasDateError
+              ? 'border-red-400 focus:ring-red-400 bg-red-50'
+              : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+            }`}
         />
+        {hasDateError && (
+          <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+            <span>⚠️</span> {dateError}
+          </p>
+        )}
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">現在の気温 (℃)</label>
         <input
+          id="current-temp-input"
           type="number"
           step="0.1"
           required
@@ -44,6 +87,7 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
       <div>
         <label className="block text-sm font-medium text-gray-700">よく行くショップ</label>
         <select
+          id="target-shop-select"
           value={targetShop}
           onChange={(e) => setTargetShop(e.target.value)}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
@@ -55,8 +99,10 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
       </div>
 
       <button
+        id="submit-button"
         type="submit"
-        className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200"
+        disabled={hasDateError}
+        className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         おすすめを提案してもらう
       </button>

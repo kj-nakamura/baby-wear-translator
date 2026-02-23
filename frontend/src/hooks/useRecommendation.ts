@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { components } from '@/types/openapi';
 
-type RecommendationResponse = components['schemas']['RecommendationResponse'];
+type BaseResponse = components['schemas']['RecommendationResponse'];
+
+// バックエンドが返す拡張 Item 型（other_shop_names を含む）
+interface ExtendedItem {
+  universal_name: string;
+  shop_specific_name: string;
+  other_shop_names?: Record<string, string>;
+}
+
+// RecommendationResponse の items を拡張 Item で上書きした型
+export interface RecommendationResponse extends Omit<BaseResponse, 'items'> {
+  items: ExtendedItem[];
+}
 
 export const useRecommendation = () => {
   const [data, setData] = useState<RecommendationResponse | null>(null);
@@ -22,7 +34,7 @@ export const useRecommendation = () => {
       if (!response.ok) {
         throw new Error('Failed to fetch recommendation');
       }
-      const result = await response.json();
+      const result: RecommendationResponse = await response.json();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');

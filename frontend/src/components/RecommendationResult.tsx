@@ -1,10 +1,14 @@
 'use client';
 
 import React from 'react';
-import { components } from '@/types/openapi';
+import { RecommendationResponse } from '@/hooks/useRecommendation';
 
-type RecommendationResponse = components['schemas']['RecommendationResponse'];
-type Item = components['schemas']['Item'];
+// バックエンドのレスポンスを拡張した型（other_shop_names を含む）
+interface ExtendedItem {
+    universal_name: string;
+    shop_specific_name: string;
+    other_shop_names?: Record<string, string>;
+}
 
 interface RecommendationResultProps {
     result: RecommendationResponse;
@@ -39,13 +43,20 @@ const SHOP_DISPLAY_NAMES: Record<string, string> = {
     akachan_honpo: 'アカチャンホンポ',
 };
 
-const ItemCard: React.FC<{ item: Item; shopName: string; index: number }> = ({
+const ItemCard: React.FC<{ item: ExtendedItem; shopName: string; index: number }> = ({
     item,
     shopName,
     index,
 }) => {
     const meta = getItemMeta(item.universal_name);
     const displayShopName = SHOP_DISPLAY_NAMES[shopName] ?? shopName;
+
+    // other_shop_names を表示用に整形（shop_id → 表示名の順で並べる）
+    const otherShops = Object.entries(item.other_shop_names ?? {}).map(([shopId, name]) => ({
+        shopId,
+        displayName: SHOP_DISPLAY_NAMES[shopId] ?? shopId,
+        name,
+    }));
 
     return (
         <div
@@ -65,14 +76,30 @@ const ItemCard: React.FC<{ item: Item; shopName: string; index: number }> = ({
                 {meta.emoji} {meta.label}
             </span>
 
-            {/* 汎用名 */}
-            <p className="text-lg font-bold text-gray-900 leading-snug">{item.universal_name}</p>
-
-            {/* ショップ固有名 */}
-            <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2">
-                <span className="text-xs font-medium text-gray-500">{displayShopName}での呼び名</span>
-                <span className="ml-auto text-sm font-semibold text-blue-700">{item.shop_specific_name}</span>
+            {/* 選択ショップでの呼び名（メイン） */}
+            <div>
+                <p className="text-xs font-medium text-gray-400 mb-0.5">{displayShopName}での名前</p>
+                <p className="text-xl font-bold text-gray-900 leading-snug">{item.shop_specific_name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">（汎用名: {item.universal_name}）</p>
             </div>
+
+            {/* 他のショップでの呼び名 */}
+            {otherShops.length > 0 && (
+                <div className="border-t border-gray-100 pt-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                        他のショップでは…
+                    </p>
+                    {otherShops.map(({ shopId, displayName, name }) => (
+                        <div
+                            key={shopId}
+                            className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2"
+                        >
+                            <span className="text-xs font-medium text-gray-500 shrink-0">{displayName}</span>
+                            <span className="ml-auto text-sm font-semibold text-indigo-600">{name}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -91,7 +118,7 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                 </div>
             </div>
 
-            {/* アイテム件数バナー */}
+            {/* アイテム一覧 */}
             {result.items.length === 0 ? (
                 <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5 text-center text-yellow-800">
                     <p className="text-2xl">😅</p>
@@ -104,7 +131,7 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                     </p>
                     <div className="flex flex-col gap-4">
                         {result.items.map((item, idx) => (
-                            <ItemCard key={idx} item={item} shopName={shopName} index={idx} />
+                            <ItemCard key={idx} item={item as ExtendedItem} shopName={shopName} index={idx} />
                         ))}
                     </div>
                 </>

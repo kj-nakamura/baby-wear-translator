@@ -65,6 +65,8 @@ export interface operations {
                 birth_date: string;
                 /** @description Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo) */
                 target_shop?: string;
+                /** @description Target date to wear the baby wear (YYYY-MM-DD), defaults to today */
+                target_date?: string;
                 /** @description Current temperature in degrees Celsius */
                 current_temp: number;
             };

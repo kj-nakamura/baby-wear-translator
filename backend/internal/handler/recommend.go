@@ -34,20 +34,26 @@ func (h *RecommendHandler) GetRecommendation(c *gin.Context, params GetRecommend
 	// 1. 生年月日の利用
 	birthDate := params.BirthDate.Time
 
-	// 2. バリデーション: 生年月日が未来の場合は 400 を返す
+	// 2. targetDate の決定
+	targetDate := time.Now()
+	if params.TargetDate != nil {
+		targetDate = params.TargetDate.Time
+	}
+
+	// 3. バリデーション: 生年月日は targetDate（デフォルトは今日）より前でなければならない
 	// タイムゾーンのズレを避けるため、YYYY-MM-DD 文字列として比較する
 	const dateFmt = "2006-01-02"
-	todayStr := time.Now().Format(dateFmt)
+	targetStr := targetDate.Format(dateFmt)
 	birthStr := birthDate.Format(dateFmt)
-	if birthStr > todayStr {
+	if birthStr > targetStr {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "birth_date must not be in the future",
+			"error": "birth_date must not be after target_date",
 		})
 		return
 	}
 
-	// 3. 月齢の計算
-	ageInMonths := domain.CalculateAgeInMonths(birthDate, time.Now())
+	// 4. 月齢の計算
+	ageInMonths := domain.CalculateAgeInMonths(birthDate, targetDate)
 
 	// 4. 推奨アイテムの取得 (universal_name のリスト)
 	universalNames := domain.Recommend(ageInMonths, float64(params.CurrentTemp))

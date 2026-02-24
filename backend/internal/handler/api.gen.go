@@ -4,16 +4,9 @@
 package handler
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/url"
-	"path"
-	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -44,6 +37,9 @@ type GetRecommendationParams struct {
 
 	// TargetShop Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo)
 	TargetShop *string `form:"target_shop,omitempty" json:"target_shop,omitempty"`
+
+	// TargetDate Target date to wear the baby wear (YYYY-MM-DD), defaults to today
+	TargetDate *openapi_types.Date `form:"target_date,omitempty" json:"target_date,omitempty"`
 
 	// CurrentTemp Current temperature in degrees Celsius
 	CurrentTemp float32 `form:"current_temp" json:"current_temp"`
@@ -93,6 +89,14 @@ func (siw *ServerInterfaceWrapper) GetRecommendation(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", true, false, "target_shop", c.Request.URL.Query(), &params.TargetShop)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter target_shop: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "target_date" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "target_date", c.Request.URL.Query(), &params.TargetDate)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter target_date: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -149,95 +153,4 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.GET(options.BaseURL+"/recommend", wrapper.GetRecommendation)
-}
-
-// Base64 encoded, gzipped, json marshaled Swagger object
-var swaggerSpec = []string{
-
-	"H4sIAAAAAAAC/4xVTYvcRhD9K00lEAc0M1qvDUY3ew1hwAazcQiLWYYaqUZqR+ru7a5eZ1gGws4lh9xC",
-	"jrnlkvOe8nt0SH5GKGm+djVrfNJIXR/vVb3XcwO5bZw1ZDhAdgMhr6jB7ueUqZGn89aRZ019QGXdLDjK",
-	"9ULnM4MNydeCQu61Y20NZPB9Zd1oG6MkRtmF4oqUlpoJ0M/YuJogg/b2rl2v2/Wv7fquXf/Rrv9ub/9q",
-	"b//pvt+169//u/3t3z9/gQR46SQhsNemhFUC0ehr8gHrR1D8sD0fIFBPaFyOE5XbZq5HFRZY6m+HsD7X",
-	"fpWAp6uoPRWQfXiIJTk2pstdETv/SDkLh3PKbdOQKVBAn1Nw1gQaTh1Lmmkza6zhKgypnmGdxxqZCoUl",
-	"KW3UJvKA07Nde22YSvLSX6ZxpN4bHVgG5rfwqFB96EHK154WkMFXk72CJhv5TDrtrHYd0XtcDoZ2n9S2",
-	"8nBMkqfNwg5xvnw3VQvr9zi1KdUc50v1idCrOQYqlDVqrj1XqkAmhaZQTI0jjxw9JeqT5kqFgWLDWJau",
-	"uZPDKyn5o5R879GEGtl69fLdFBKQtfdgTsbpOBXS1pFBpyGD03E6PoUEHG7WNtkhlbeSeMjpnDh6ExSq",
-	"+sgW9uS6ae0pirbl8JvQSUBo5tF7MnxIV0jZ7kVbMy0gg++I74uwg+uxISYfIPvwEN+rvsnBSJ9cXFxc",
-	"jN6+Hb1+LS7SEnUVyS8hgd6a0EXPJBoONcA+UrK5c2QSewM+TZ+ejk7SUXoCCSysb5Ahg02BgRcfYnyP",
-	"viTuttqbX0SyWy+Tb7SxtS2X25sgGn1V20QZHSrdIIe4xEThT5hXaGaVNc4+Ro27XjPpBce59MW/BPfZ",
-	"cGNi5oJKTxTUGdVBx/AIkM26Z5L8ZVM+eT5+fjDdRW2R9zBNbOZyS6wupVh/M3Uifpqm8sitYTKdgtG5",
-	"WuedfCYfg1C5Oej3uYvikQuw8/yDP5WY5xTCItZ7Q3RJyu+yEnjWY7ufOjXXWOtCaeMiqwN1S5cQmwb9",
-	"srfCca/1cAL56+OWeGNzrFV/DglEX0MGFbPLJpNaziobOHuRvkhhdbn6PwAA///5zDvZcwcAAA==",
-}
-
-// GetSwagger returns the content of the embedded swagger specification file
-// or error if failed to decode
-func decodeSpec() ([]byte, error) {
-	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
-	if err != nil {
-		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
-	}
-	zr, err := gzip.NewReader(bytes.NewReader(zipped))
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %w", err)
-	}
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(zr)
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %w", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-var rawSpec = decodeSpecCached()
-
-// a naive cached of a decoded swagger spec
-func decodeSpecCached() func() ([]byte, error) {
-	data, err := decodeSpec()
-	return func() ([]byte, error) {
-		return data, err
-	}
-}
-
-// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
-func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
-	res := make(map[string]func() ([]byte, error))
-	if len(pathToFile) > 0 {
-		res[pathToFile] = rawSpec
-	}
-
-	return res
-}
-
-// GetSwagger returns the Swagger specification corresponding to the generated code
-// in this file. The external references of Swagger specification are resolved.
-// The logic of resolving external references is tightly connected to "import-mapping" feature.
-// Externally referenced files must be embedded in the corresponding golang packages.
-// Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
-	resolvePath := PathToRawSpec("")
-
-	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
-	var specData []byte
-	specData, err = rawSpec()
-	if err != nil {
-		return
-	}
-	swagger, err = loader.LoadFromData(specData)
-	if err != nil {
-		return
-	}
-	return
 }

@@ -165,16 +165,23 @@ func TestGetRecommendation_OK_NoTargetShop(t *testing.T) {
 // バリデーション（400 Bad Request）テスト
 // =============================================================================
 
-func TestGetRecommendation_BadRequest_FutureBirthDate(t *testing.T) {
+func TestGetRecommendation_BadRequest_BirthDateAfterTargetDate(t *testing.T) {
 	r := setupRouter()
-	w := doRequest(t, r, "/recommend?birth_date=2099-12-31&current_temp=20&target_shop=nishimatsuya")
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d (future birth_date should be rejected)", w.Code, http.StatusBadRequest)
+	// 1. target_date が指定されていない場合（デフォルト＝今日）、今日より未来の birth_date はエラー
+	w1 := doRequest(t, r, "/recommend?birth_date=2099-12-31&current_temp=20&target_shop=nishimatsuya")
+	if w1.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d (future birth_date should be rejected when target_date is not set)", w1.Code, http.StatusBadRequest)
+	}
+
+	// 2. target_date が指定されている場合、それより未来の birth_date はエラー
+	w2 := doRequest(t, r, "/recommend?birth_date=2025-10-15&target_date=2025-10-01&current_temp=20&target_shop=nishimatsuya")
+	if w2.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d (birth_date after target_date should be rejected)", w2.Code, http.StatusBadRequest)
 	}
 
 	var body map[string]string
-	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+	if err := json.Unmarshal(w2.Body.Bytes(), &body); err != nil {
 		t.Fatalf("json.Unmarshal: %v", err)
 	}
 	if body["error"] == "" {

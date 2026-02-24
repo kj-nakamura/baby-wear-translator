@@ -11,9 +11,9 @@ export default function Home() {
 
   const { data, loading, error, fetchRecommendation } = useRecommendation();
 
-  const handleSubmit = (birthDate: string, currentTemp: number, targetShop: string) => {
+  const handleSubmit = (birthDate: string, targetDate: string, currentTemp: number, targetShop: string) => {
     setSelectedShop(targetShop);
-    fetchRecommendation(birthDate, currentTemp, targetShop);
+    fetchRecommendation(birthDate, targetDate, currentTemp, targetShop);
   };
 
   return (

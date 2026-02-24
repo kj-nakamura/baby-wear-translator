@@ -20,12 +20,13 @@ export const useRecommendation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecommendation = async (birthDate: string, currentTemp: number, targetShop?: string) => {
+  const fetchRecommendation = async (birthDate: string, targetDate: string, currentTemp: number, targetShop?: string) => {
     setLoading(true);
     setError(null);
     try {
       const query = new URLSearchParams({
         birth_date: birthDate,
+        target_date: targetDate,
         current_temp: currentTemp.toString(),
       });
       if (targetShop) query.append('target_shop', targetShop);

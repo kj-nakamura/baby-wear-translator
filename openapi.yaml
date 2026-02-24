@@ -28,6 +28,14 @@ paths:
           schema:
             type: string
             example: "uniqlo"
+        - name: target_date
+          in: query
+          description: Target date to wear the baby wear (YYYY-MM-DD), defaults to today
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2023-10-15"
         - name: current_temp
           in: query
           description: Current temperature in degrees Celsius

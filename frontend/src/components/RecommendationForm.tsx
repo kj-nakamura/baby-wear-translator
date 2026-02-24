@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 
 interface RecommendationFormProps {
-  onSubmit: (birthDate: string, currentTemp: number, targetShop: string) => void;
+  onSubmit: (birthDate: string, targetDate: string, currentTemp: number, targetShop: string) => void;
 }
 
 // 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
@@ -28,18 +28,17 @@ function sixMonthsAgoString(): string {
 
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
   const [birthDate, setBirthDate] = useState(sixMonthsAgoString());
+  const [targetDate, setTargetDate] = useState(todayString());
   const [currentTemp, setCurrentTemp] = useState('20');
   const [targetShop, setTargetShop] = useState('nishimatsuya');
   const [dateError, setDateError] = useState('');
 
-  const today = todayString();
+  const handleDateChange = (newBirthDate: string, newTargetDate: string) => {
+    setBirthDate(newBirthDate);
+    setTargetDate(newTargetDate);
 
-  const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setBirthDate(value);
-
-    if (value && value > today) {
-      setDateError('生年月日は今日以前の日付を入力してください。');
+    if (newBirthDate && newTargetDate && newBirthDate > newTargetDate) {
+      setDateError('生年月日は着せたい日付より前である必要があります。');
     } else {
       setDateError('');
     }
@@ -49,12 +48,12 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
     e.preventDefault();
 
     // submit 時にも再チェック
-    if (birthDate > today) {
-      setDateError('生年月日は今日以前の日付を入力してください。');
+    if (birthDate > targetDate) {
+      setDateError('生年月日は着せたい日付より前である必要があります。');
       return;
     }
 
-    onSubmit(birthDate, parseFloat(currentTemp), targetShop);
+    onSubmit(birthDate, targetDate, parseFloat(currentTemp), targetShop);
   };
 
   const hasDateError = !!dateError;
@@ -67,9 +66,25 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
           id="birth-date-input"
           type="date"
           required
-          max={today}
+          max={targetDate}
           value={birthDate}
-          onChange={handleBirthDateChange}
+          onChange={(e) => handleDateChange(e.target.value, targetDate)}
+          className={`mt-1 block w-full border rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 ${hasDateError
+            ? 'border-red-400 focus:ring-red-400 bg-red-50'
+            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+            }`}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">着せたい日付</label>
+        <input
+          id="target-date-input"
+          type="date"
+          required
+          min={birthDate}
+          value={targetDate}
+          onChange={(e) => handleDateChange(birthDate, e.target.value)}
           className={`mt-1 block w-full border rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 ${hasDateError
             ? 'border-red-400 focus:ring-red-400 bg-red-50'
             : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'

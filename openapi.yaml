@@ -67,12 +67,17 @@ components:
       type: object
       required:
         - age_in_months
+        - size
         - items
       properties:
         age_in_months:
           type: integer
           description: Calculated age in months
           example: 4
+        size:
+          type: string
+          description: Estimated clothing size in cm
+          example: "60-70cm"
         items:
           type: array
           description: List of recommended items

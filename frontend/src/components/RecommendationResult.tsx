@@ -108,13 +108,25 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
     return (
         <div className="w-full animate-fade-in">
             {/* ヘッダー */}
-            <div className="mb-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 p-5 text-white shadow">
-                <span className="text-4xl">🍼</span>
-                <div>
-                    <p className="text-sm font-medium opacity-80">現在の月齢</p>
-                    <p className="text-2xl font-extrabold tracking-tight">
-                        生後 <span className="text-4xl">{result.age_in_months}</span> ヶ月
-                    </p>
+            <div className="mb-5 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 p-5 text-white shadow sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="text-4xl">🍼</span>
+                    <div>
+                        <p className="text-sm font-medium opacity-80">生後月齢</p>
+                        <p className="text-2xl font-extrabold tracking-tight">
+                            <span className="text-4xl">{result.age_in_months}</span> ヶ月頃
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 border-t border-white/20 pt-3 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5">
+                    <span className="text-3xl">📏</span>
+                    <div>
+                        <p className="text-sm font-medium opacity-80">目安サイズ</p>
+                        <p className="text-2xl font-extrabold tracking-tight">
+                            {result.size}
+                        </p>
+                    </div>
                 </div>
             </div>
 

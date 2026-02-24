@@ -26,6 +26,7 @@ type itemResponse struct {
 // recommendationResponse は JSON レスポンス用の拡張レスポンス型です。
 type recommendationResponse struct {
 	AgeInMonths int            `json:"age_in_months"`
+	Size        string         `json:"size"`
 	Items       []itemResponse `json:"items"`
 }
 
@@ -95,6 +96,7 @@ func (h *RecommendHandler) GetRecommendation(c *gin.Context, params GetRecommend
 	// 6. レスポンスの返却
 	resp := recommendationResponse{
 		AgeInMonths: ageInMonths,
+		Size:        domain.EstimateSize(ageInMonths),
 		Items:       items,
 	}
 

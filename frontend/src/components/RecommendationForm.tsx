@@ -7,16 +7,27 @@ interface RecommendationFormProps {
 }
 
 // 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
+function formatDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
 function todayString(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return formatDate(new Date());
+}
+
+// 6ヶ月前の日付を YYYY-MM-DD 形式で返す
+function sixMonthsAgoString(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 6);
+  return formatDate(d);
 }
 
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
-  const [birthDate, setBirthDate] = useState('');
+  const [birthDate, setBirthDate] = useState(sixMonthsAgoString());
   const [currentTemp, setCurrentTemp] = useState('20');
   const [targetShop, setTargetShop] = useState('nishimatsuya');
   const [dateError, setDateError] = useState('');
@@ -60,8 +71,8 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
           value={birthDate}
           onChange={handleBirthDateChange}
           className={`mt-1 block w-full border rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 ${hasDateError
-              ? 'border-red-400 focus:ring-red-400 bg-red-50'
-              : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+            ? 'border-red-400 focus:ring-red-400 bg-red-50'
+            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
             }`}
         />
         {hasDateError && (

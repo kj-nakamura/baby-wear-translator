@@ -28,6 +28,9 @@ type RecommendationResponse struct {
 
 	// Items List of recommended items
 	Items []Item `json:"items"`
+
+	// Size Estimated clothing size in cm
+	Size string `json:"size"`
 }
 
 // GetRecommendationParams defines parameters for GetRecommendation.

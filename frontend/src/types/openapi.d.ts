@@ -46,6 +46,11 @@ export interface components {
              * @example 4
              */
             age_in_months: number;
+            /**
+             * @description Estimated clothing size in cm
+             * @example 60-70cm
+             */
+            size: string;
             /** @description List of recommended items */
             items: components["schemas"]["Item"][];
         };

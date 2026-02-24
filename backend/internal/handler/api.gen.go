@@ -40,9 +40,6 @@ type GetRecommendationParams struct {
 
 	// TargetDate Target date to wear the baby wear (YYYY-MM-DD), defaults to today
 	TargetDate *openapi_types.Date `form:"target_date,omitempty" json:"target_date,omitempty"`
-
-	// CurrentTemp Current temperature in degrees Celsius
-	CurrentTemp float32 `form:"current_temp" json:"current_temp"`
 }
 
 // ServerInterface represents all server handlers.
@@ -97,21 +94,6 @@ func (siw *ServerInterfaceWrapper) GetRecommendation(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", true, false, "target_date", c.Request.URL.Query(), &params.TargetDate)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter target_date: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Required query parameter "current_temp" -------------
-
-	if paramValue := c.Query("current_temp"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument current_temp is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "current_temp", c.Request.URL.Query(), &params.CurrentTemp)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter current_temp: %w", err), http.StatusBadRequest)
 		return
 	}
 

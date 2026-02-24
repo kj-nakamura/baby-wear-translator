@@ -11,9 +11,9 @@ export default function Home() {
 
   const { data, loading, error, fetchRecommendation } = useRecommendation();
 
-  const handleSubmit = (birthDate: string, targetDate: string, currentTemp: number, targetShop: string) => {
+  const handleSubmit = (birthDate: string, targetDate: string, targetShop: string) => {
     setSelectedShop(targetShop);
-    fetchRecommendation(birthDate, targetDate, currentTemp, targetShop);
+    fetchRecommendation(birthDate, targetDate, targetShop);
   };
 
   return (
@@ -26,7 +26,7 @@ export default function Home() {
             <h1 className="text-lg font-extrabold text-gray-900 leading-tight">
               Baby Wear Translator
             </h1>
-            <p className="text-xs text-gray-500">今日の気温に合った服を提案します</p>
+            <p className="text-xs text-gray-500">着せたい時期に合った服を提案します</p>
           </div>
         </div>
       </header>
@@ -78,7 +78,7 @@ export default function Home() {
           <div className="flex flex-col items-center gap-3 py-10 text-center text-gray-400">
             <span className="text-5xl">👆</span>
             <p className="text-sm font-medium">
-              生年月日・気温・ショップを入力して<br />「おすすめを提案してもらう」を押してください
+              生年月日・着せたい日付・ショップを入力して<br />「おすすめを提案してもらう」を押してください
             </p>
           </div>
         )}

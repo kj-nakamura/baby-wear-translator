@@ -67,8 +67,6 @@ export interface operations {
                 target_shop?: string;
                 /** @description Target date to wear the baby wear (YYYY-MM-DD), defaults to today */
                 target_date?: string;
-                /** @description Current temperature in degrees Celsius */
-                current_temp: number;
             };
             header?: never;
             path?: never;

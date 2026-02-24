@@ -52,13 +52,14 @@ func (h *RecommendHandler) GetRecommendation(c *gin.Context, params GetRecommend
 		return
 	}
 
-	// 4. 月齢の計算
+	// 4. 月齢と推測気温の計算
 	ageInMonths := domain.CalculateAgeInMonths(birthDate, targetDate)
+	estimatedTemp := domain.EstimateTemperature(targetDate)
 
-	// 4. 推奨アイテムの取得 (universal_name のリスト)
-	universalNames := domain.Recommend(ageInMonths, float64(params.CurrentTemp))
+	// 5. 推奨アイテムの取得 (universal_name のリスト)
+	universalNames := domain.Recommend(ageInMonths, estimatedTemp)
 
-	// 5. ショップ固有の名前へのマッピング
+	// 6. ショップ固有の名前へのマッピング
 	selectedShop := ""
 	if params.TargetShop != nil {
 		selectedShop = string(*params.TargetShop)

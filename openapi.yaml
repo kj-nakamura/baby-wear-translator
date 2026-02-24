@@ -36,14 +36,6 @@ paths:
             type: string
             format: date
             example: "2023-10-15"
-        - name: current_temp
-          in: query
-          description: Current temperature in degrees Celsius
-          required: true
-          schema:
-            type: number
-            format: float
-            example: 15.5
       responses:
         '200':
           description: Successful recommendation response

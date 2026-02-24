@@ -47,8 +47,7 @@ func doRequest(t *testing.T, r *gin.Engine, url string) *httptest.ResponseRecord
 
 func TestGetRecommendation_OK_BasicResponse(t *testing.T) {
 	r := setupRouter()
-	// 2025-10-01生まれ、2026-02-24時点 → 約4ヶ月 (ただしテスト実行日依存なので月齢の妥当性を確認)
-	w := doRequest(t, r, "/recommend?birth_date=2025-10-01&current_temp=5&target_shop=nishimatsuya")
+	w := doRequest(t, r, "/recommend?birth_date=2025-10-01&target_shop=nishimatsuya")
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body = %s", w.Code, http.StatusOK, w.Body.String())
@@ -102,7 +101,7 @@ func TestGetRecommendation_OK_ShopSpecificName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url := "/recommend?birth_date=" + tt.birthDate + "&current_temp=5&target_shop=" + tt.shop
+			url := "/recommend?birth_date=" + tt.birthDate + "&target_shop=" + tt.shop
 			w := doRequest(t, r, url)
 
 			if w.Code != http.StatusOK {
@@ -132,7 +131,7 @@ func TestGetRecommendation_OK_ShopSpecificName(t *testing.T) {
 
 func TestGetRecommendation_OK_OtherShopNames(t *testing.T) {
 	r := setupRouter()
-	w := doRequest(t, r, "/recommend?birth_date=2025-10-01&current_temp=5&target_shop=nishimatsuya")
+	w := doRequest(t, r, "/recommend?birth_date=2025-10-01&target_shop=nishimatsuya")
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
@@ -154,7 +153,7 @@ func TestGetRecommendation_OK_OtherShopNames(t *testing.T) {
 func TestGetRecommendation_OK_NoTargetShop(t *testing.T) {
 	r := setupRouter()
 	// target_shop を省略してもエラーにならない
-	w := doRequest(t, r, "/recommend?birth_date=2025-10-01&current_temp=20")
+	w := doRequest(t, r, "/recommend?birth_date=2025-10-01")
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body = %s", w.Code, http.StatusOK, w.Body.String())
@@ -169,13 +168,13 @@ func TestGetRecommendation_BadRequest_BirthDateAfterTargetDate(t *testing.T) {
 	r := setupRouter()
 
 	// 1. target_date が指定されていない場合（デフォルト＝今日）、今日より未来の birth_date はエラー
-	w1 := doRequest(t, r, "/recommend?birth_date=2099-12-31&current_temp=20&target_shop=nishimatsuya")
+	w1 := doRequest(t, r, "/recommend?birth_date=2099-12-31&target_shop=nishimatsuya")
 	if w1.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d (future birth_date should be rejected when target_date is not set)", w1.Code, http.StatusBadRequest)
 	}
 
 	// 2. target_date が指定されている場合、それより未来の birth_date はエラー
-	w2 := doRequest(t, r, "/recommend?birth_date=2025-10-15&target_date=2025-10-01&current_temp=20&target_shop=nishimatsuya")
+	w2 := doRequest(t, r, "/recommend?birth_date=2025-10-15&target_date=2025-10-01&target_shop=nishimatsuya")
 	if w2.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d (birth_date after target_date should be rejected)", w2.Code, http.StatusBadRequest)
 	}
@@ -191,60 +190,19 @@ func TestGetRecommendation_BadRequest_BirthDateAfterTargetDate(t *testing.T) {
 
 func TestGetRecommendation_BadRequest_MissingBirthDate(t *testing.T) {
 	r := setupRouter()
-	w := doRequest(t, r, "/recommend?current_temp=20")
+	w := doRequest(t, r, "/recommend")
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d (missing birth_date should be rejected)", w.Code, http.StatusBadRequest)
 	}
 }
 
-func TestGetRecommendation_BadRequest_MissingCurrentTemp(t *testing.T) {
-	r := setupRouter()
-	w := doRequest(t, r, "/recommend?birth_date=2025-10-01")
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d (missing current_temp should be rejected)", w.Code, http.StatusBadRequest)
-	}
-}
-
 func TestGetRecommendation_BadRequest_InvalidDateFormat(t *testing.T) {
 	r := setupRouter()
-	w := doRequest(t, r, "/recommend?birth_date=20251001&current_temp=20")
+	w := doRequest(t, r, "/recommend?birth_date=20251001")
 
 	// フォーマット不正は 400 を返す
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d (invalid date format should be rejected)", w.Code, http.StatusBadRequest)
-	}
-}
-
-// =============================================================================
-// 気温境界値テスト（ハンドラーレベル）
-// =============================================================================
-
-func TestGetRecommendation_TempBoundary(t *testing.T) {
-	r := setupRouter()
-
-	tests := []struct {
-		name     string
-		temp     string
-		birthday string
-	}{
-		{"氷点下", "-10", "2025-10-01"},
-		{"ゼロ度", "0", "2025-10-01"},
-		{"15度（ロンパース境界）", "15", "2025-10-01"},
-		{"20度（上限境界）", "20", "2025-10-01"},
-		{"25度（インナー1枚境界）", "25", "2025-10-01"},
-		{"猛暑", "40", "2025-10-01"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			url := "/recommend?birth_date=" + tt.birthday + "&current_temp=" + tt.temp + "&target_shop=nishimatsuya"
-			w := doRequest(t, r, url)
-
-			if w.Code != http.StatusOK {
-				t.Errorf("status = %d, want %d; body = %s", w.Code, http.StatusOK, w.Body.String())
-			}
-		})
 	}
 }

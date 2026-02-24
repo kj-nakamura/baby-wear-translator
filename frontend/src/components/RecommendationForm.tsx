@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 
 interface RecommendationFormProps {
-  onSubmit: (birthDate: string, targetDate: string, currentTemp: number, targetShop: string) => void;
+  onSubmit: (birthDate: string, targetDate: string, targetShop: string) => void;
 }
 
 // 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
@@ -29,7 +29,6 @@ function sixMonthsAgoString(): string {
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
   const [birthDate, setBirthDate] = useState(sixMonthsAgoString());
   const [targetDate, setTargetDate] = useState(todayString());
-  const [currentTemp, setCurrentTemp] = useState('20');
   const [targetShop, setTargetShop] = useState('nishimatsuya');
   const [dateError, setDateError] = useState('');
 
@@ -53,7 +52,7 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
       return;
     }
 
-    onSubmit(birthDate, targetDate, parseFloat(currentTemp), targetShop);
+    onSubmit(birthDate, targetDate, targetShop);
   };
 
   const hasDateError = !!dateError;
@@ -95,19 +94,6 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
             <span>⚠️</span> {dateError}
           </p>
         )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">現在の気温 (℃)</label>
-        <input
-          id="current-temp-input"
-          type="number"
-          step="0.1"
-          required
-          value={currentTemp}
-          onChange={(e) => setCurrentTemp(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-        />
       </div>
 
       <div>

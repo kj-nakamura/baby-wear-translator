@@ -8,7 +8,7 @@ import (
 	"github.com/kenji/baby-wear-translator/backend/internal/handler"
 )
 
-func main() {
+func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// CORS設定: Next.js (localhost:3000) からのリクエストを許可
@@ -23,6 +23,12 @@ func main() {
 
 	// oapi-codegen で生成された RegisterHandlers を使用してルートを登録
 	handler.RegisterHandlers(r, h)
+
+	return r
+}
+
+func main() {
+	r := SetupRouter()
 
 	// 8080ポートで起動
 	log.Println("Server starting on :8080...")

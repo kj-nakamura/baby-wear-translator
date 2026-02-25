@@ -5,53 +5,53 @@
 Baby Wear Translator
 
 コンセプト
-ショップごとに異なるベビー服の呼称（コンビ肌着、プレオール等）の差異を吸収し、生年月日、現在の月齢、およびリアルタイムの外気温から「今着せるべき最適なベビー服の組み合わせ」を提案するツール。
-娘の成長記録と実用性を兼ね備えつつ、技術的な遊び心を盛り込んだプロダクト。
+ショップごとに異なるベビー服の呼称（コンビ肌着、プレオール等）の差異を吸収し、生年月日、現在の月齢、およびリアルタイムの外気温（北海道・北広島など）から「今着せるべき最適なベビー服の組み合わせ」を提案するツール。
+娘の成長記録と実用性を兼ね備えつつ、技術的な探求心を満たすためのプロダクト。
+将来的なリードエンジニアとしてのポートフォリオ化を見据え、あえてモダンなマイクロサービスアーキテクチャに挑戦する。
 
 2. 技術スタックと選定理由
-バックエンド
+バックエンド (Microservices)
 言語: Go 1.26
 
-フレームワーク: Gin
+RPCフレームワーク: Connect-RPC (connect-go)
 
-選定理由: Laravelのような決められたディレクトリ構造の強制はないが、JSONのバインディング、CORS設定、バリデーションといったAPI開発における泥臭い定型処理を劇的に削減できるため。一人での開発スピードと生産性を最大化する。また、Go 1.26の最新機能も積極的に活用する。
+選定理由: HTTP/1.1 と HTTP/2 (gRPC) の両方をシームレスにサポートし、ブラウザからバックエンドまで `.proto` ひとつで型安全な通信を実現するため。Envoyなどのプロキシを挟む必要がなく、モノレポ構成での開発体験を極限まで高める。
 
 フロントエンド
 言語: TypeScript
 
 フレームワーク: Next.js (App Router)
 
-API連携（スキーマ駆動開発）
-仕様定義: OpenAPI (openapi.yaml)
+APIクライアント: Connect-RPC (connect-es)
 
-ツール: oapi-codegen (Go側), openapi-typescript (TS側)
+インフラ・開発環境
+コンテナ管理: Docker / Docker Compose
 
-選定理由: openapi.yamlを単一の真実の情報源とし、バックエンドのルーティング・構造体と、フロントエンドの型定義を自動生成する。型不一致によるバグを物理的に排除し、モノレポ構成での開発体験を極限まで高める。
+スキーマ駆動開発: Protocol Buffers (.proto) と Buf CLI
+
+選定理由: `openapi.yaml` を廃止し、フロントエンドからバックエンドまで通信仕様を `.proto` に一本化。`buf` を使って Go のサーバーハンドラと TypeScript のクライアント関数・型を全自動生成する。
 
 3. ディレクトリ構成
-フロントエンドとバックエンドを一つのリポジトリで管理するモノレポ構成を採用。Go側は標準的なレイヤードアーキテクチャを意識した間取りとする。
+フロントエンドと、細分化されたバックエンドサービス群を一つのリポジトリで管理し、スキーマ定義を `.proto` に一元化する純粋な Connect-RPC モノレポ構成。
 
 baby-wear-translator/
+├── proto/                    # gRPCの設計図 (.protoファイル群)
+│   ├── babywear/v1/          # 服の推薦に関するサービス定義
+│   └── weather/v1/           # 気象情報のサービス定義
+├── buf.yaml / buf.gen.yaml   # Bufによる自動生成設定
+├── frontend/                 # Next.js (TypeScript) + connect-es
 ├── backend/
-│   ├── cmd/api/main.go       # エントリーポイント
-│   ├── internal/handler/     # APIのルーティングとHTTPリクエスト/レスポンス処理 (Gin)
-│   ├── internal/domain/      # 服の名称マッピングや季節判定のビジネスロジック
-│   ├── go.mod
-│   └── go.sum
-├── frontend/
-│   ├── src/app/              # Next.js 画面コンポーネント
-│   ├── src/types/            # OpenAPIから自動生成された型定義
-│   ├── package.json
-│   └── tsconfig.json
-└── openapi.yaml              # API設計図（スキーマ）
+│   └── services/
+│       ├── weather/          # 気象情報サービス (Go + connect-go)
+│       └── recommender/      # 服の推薦サービス (Go + connect-go)
+├── docker-compose.yml        # 全サービスの一括起動コンテナ設定
+└── Makefile                  # コード自動生成(buf generate)や起動コマンドのまとめ
 
 4. 直近のアクションアイテム
-[x] openapi.yaml のひな形作成（生年月日・気温を受け取り、服のリストを返す定義）
-
-[ ] backend側の oapi-codegen によるインターフェース自動生成の実行
-
-[ ] 各ショップ（西松屋、アカチャンホンポ、ユニクロ等）のベビー服名称マスターデータの構築
-
+[x] Buf のセットアップと buf.yaml, buf.gen.yaml の作成
+[x] OpenAPIの廃止にともない、推薦APIの .proto (babywear.proto) を作成
+[x] buf generate コマンドを用いて Go と TypeScript の自動生成基盤を構築
+[ ] Go のバックエンド・Next.js フロントエンドを Connect-RPC アーキテクチャへリファクタリング
 
 
 

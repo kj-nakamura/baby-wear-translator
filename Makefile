@@ -24,6 +24,9 @@ build:
 restart:
 	docker compose restart
 
-# .protoからGoとTypeScriptのコードを自動生成 (bufが必要: brew install bufbuild/buf/buf)
+# OpenAPIからGoとTypeScriptのコードを自動生成
 gen:
-	buf generate
+	@echo "Generating backend code..."
+	cd backend/services/recommender && go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -config oapi-codegen.yaml ../../../docs/openapi.yaml
+	@echo "Generating frontend code..."
+	cd frontend && npx openapi-typescript ../docs/openapi.yaml -o src/types/openapi.d.ts

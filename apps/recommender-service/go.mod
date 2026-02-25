@@ -9,7 +9,6 @@ require (
 )
 
 require (
-	connectrpc.com/connect v1.19.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect

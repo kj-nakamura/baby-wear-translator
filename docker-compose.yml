@@ -15,15 +15,15 @@ services:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true # Next.js ホットリロード用
 
-  # API Gateway (Gin) としての役割を持つ現在のバックエンド
-  api-gateway:
+  # 服の推薦・履歴管理サービス (Gin)
+  recommender:
     build:
-      context: ./backend
+      context: ./backend/services/recommender
       dockerfile: Dockerfile
-    container_name: baby_wear_api_gateway
+    container_name: baby_wear_recommender
     ports:
       - "8080:8080"
     volumes:
-      - ./backend:/app
+      - ./backend/services/recommender:/app
     environment:
       - GIN_MODE=debug

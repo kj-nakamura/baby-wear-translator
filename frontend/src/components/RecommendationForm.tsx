@@ -27,11 +27,10 @@ function sixMonthsAgoString(): string {
 }
 
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
-  const [birthDate, setBirthDate] = useState(sixMonthsAgoString());
-  const [targetDate, setTargetDate] = useState(todayString());
+  const [birthDate, setBirthDate] = useState(() => sixMonthsAgoString());
+  const [targetDate, setTargetDate] = useState(() => todayString());
   const [targetShop, setTargetShop] = useState('nishimatsuya');
   const [dateError, setDateError] = useState('');
-
   const handleDateChange = (newBirthDate: string, newTargetDate: string) => {
     setBirthDate(newBirthDate);
     setTargetDate(newTargetDate);
@@ -62,6 +61,7 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
       <div>
         <label className="block text-sm font-medium text-gray-700">赤ちゃんの生年月日</label>
         <input
+          suppressHydrationWarning
           id="birth-date-input"
           type="date"
           required
@@ -78,6 +78,7 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
       <div>
         <label className="block text-sm font-medium text-gray-700">着せたい日付</label>
         <input
+          suppressHydrationWarning
           id="target-date-input"
           type="date"
           required

@@ -1,4 +1,4 @@
-.PHONY: up down down-all logs build restart
+.PHONY: up down down-all logs build restart gen
 
 # コンテナの起動（バックグラウンド）
 up:
@@ -23,3 +23,7 @@ build:
 # コンテナの再起動
 restart:
 	docker compose restart
+
+# .protoからGoとTypeScriptのコードを自動生成 (bufが必要: brew install bufbuild/buf/buf)
+gen:
+	buf generate

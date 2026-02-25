@@ -10,50 +10,48 @@ Baby Wear Translator
 将来的なリードエンジニアとしてのポートフォリオ化を見据え、あえてモダンなマイクロサービスアーキテクチャに挑戦する。
 
 2. 技術スタックと選定理由
-バックエンド (API Gateway & Microservices)
+バックエンド (Microservices)
 言語: Go 1.26
 
-フレームワーク: Gin (API Gateway用)
+RPCフレームワーク: Connect-RPC (connect-go)
 
-サービス間通信: gRPC / Protocol Buffers
-
-選定理由: Goの強みである高速なネットワーク通信と並行処理をフルに活かし、拡張性の高い分散システムを構築するため。
+選定理由: HTTP/1.1 と HTTP/2 (gRPC) の両方をシームレスにサポートし、ブラウザからバックエンドまで `.proto` ひとつで型安全な通信を実現するため。Envoyなどのプロキシを挟む必要がなく、モノレポ構成での開発体験を極限まで高める。
 
 フロントエンド
 言語: TypeScript
 
 フレームワーク: Next.js (App Router)
 
+APIクライアント: Connect-RPC (connect-es)
+
 インフラ・開発環境
 コンテナ管理: Docker / Docker Compose
 
-スキーマ駆動開発: OpenAPI (フロント・ゲートウェイ間) および Protocol Buffers (バックエンド・サービス間)
+スキーマ駆動開発: Protocol Buffers (.proto) と Buf CLI
 
-選定理由: モノレポ環境下で、フロントエンド、APIゲートウェイ、および複数に分割されたGoの裏側サービス群を、コマンド一発で一括起動し、開発体験（DX）を最大化するため。
+選定理由: `openapi.yaml` を廃止し、フロントエンドからバックエンドまで通信仕様を `.proto` に一本化。`buf` を使って Go のサーバーハンドラと TypeScript のクライアント関数・型を全自動生成する。
 
 3. ディレクトリ構成
-フロントエンドと、細分化されたバックエンドサービス群を一つのリポジトリで管理し、スキーマ定義を一元化するモノレポ構成。
+フロントエンドと、細分化されたバックエンドサービス群を一つのリポジトリで管理し、スキーマ定義を `.proto` に一元化する純粋な Connect-RPC モノレポ構成。
 
 baby-wear-translator/
-├── proto/                   # gRPCの設計図 (.protoファイル群)
-│   └── weather/v1/weather.proto
-├── frontend/                # Next.js (TypeScript)
+├── proto/                    # gRPCの設計図 (.protoファイル群)
+│   ├── babywear/v1/          # 服の推薦に関するサービス定義
+│   └── weather/v1/           # 気象情報のサービス定義
+├── buf.yaml / buf.gen.yaml   # Bufによる自動生成設定
+├── frontend/                 # Next.js (TypeScript) + connect-es
 ├── backend/
-│   ├── api-gateway/         # フロントからのHTTP(JSON)を受け、gRPCへ変換する門番 (Gin)
 │   └── services/
-│       ├── weather/         # 気象APIから情報を取得して返すサービス (Go + gRPC)
-│       └── master/          # 服の名称辞書や判定ロジックを管理するサービス (Go + gRPC)
-├── docker-compose.yml       # 全サービスの一括起動コンテナ設定
-├── openapi.yaml             # フロントエンドとAPI Gateway間のAPI設計図
-└── Makefile                 # コード自動生成(oapi-codegen, protoc)や起動コマンドのまとめ
+│       ├── weather/          # 気象情報サービス (Go + connect-go)
+│       └── recommender/      # 服の推薦サービス (Go + connect-go)
+├── docker-compose.yml        # 全サービスの一括起動コンテナ設定
+└── Makefile                  # コード自動生成(buf generate)や起動コマンドのまとめ
 
 4. 直近のアクションアイテム
-[x] モノレポのルートディレクトリ構築と Makefile の初期設定
-
-[x] gRPC通信の土台となる weather.proto ファイルの作成
-
-[x] 全サービス（Frontend, API Gateway, Weather Service等）を連携して立ち上げる docker-compose.yml の作成と起動確認
-
+[x] Buf のセットアップと buf.yaml, buf.gen.yaml の作成
+[x] OpenAPIの廃止にともない、推薦APIの .proto (babywear.proto) を作成
+[x] buf generate コマンドを用いて Go と TypeScript の自動生成基盤を構築
+[ ] Go のバックエンド・Next.js フロントエンドを Connect-RPC アーキテクチャへリファクタリング
 
 
 

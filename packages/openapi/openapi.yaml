@@ -7,11 +7,11 @@ servers:
   - url: http://localhost:8080
     description: Local server
 paths:
-  /recommend:
+  /milestones:
     get:
-      summary: Get recommended baby wear
-      description: Returns a list of recommended baby wear items based on the baby's age and current temperature.
-      operationId: getRecommendation
+      summary: Get baby wear milestones
+      description: Returns a list of recommended baby wear items for each month from birth to 2 years old.
+      operationId: getMilestones
       parameters:
         - name: birth_date
           in: query
@@ -28,21 +28,13 @@ paths:
           schema:
             type: string
             example: "uniqlo"
-        - name: target_date
-          in: query
-          description: Target date to wear the baby wear (YYYY-MM-DD), defaults to today
-          required: false
-          schema:
-            type: string
-            format: date
-            example: "2023-10-15"
       responses:
         '200':
-          description: Successful recommendation response
+          description: Successful milestones response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecommendationResponse'
+                $ref: '#/components/schemas/MilestoneResponse'
         '400':
           description: Invalid input parameters
 
@@ -63,23 +55,40 @@ components:
           description: Shop-specific name of the item
           example: "コットンフライスコンビ肌着"
     
-    RecommendationResponse:
+    Milestone:
       type: object
       required:
         - age_in_months
+        - target_date
         - size
         - items
       properties:
         age_in_months:
           type: integer
-          description: Calculated age in months
-          example: 4
+          description: Age in months at this milestone
+          example: 0
+        target_date:
+          type: string
+          format: date
+          description: The date corresponding to this milestone
+          example: "2023-10-01"
         size:
           type: string
           description: Estimated clothing size in cm
-          example: "60-70cm"
+          example: "50-60cm"
         items:
           type: array
           description: List of recommended items
           items:
             $ref: '#/components/schemas/Item'
+
+    MilestoneResponse:
+      type: object
+      required:
+        - milestones
+      properties:
+        milestones:
+          type: array
+          description: List of milestones from birth to 24 months
+          items:
+            $ref: '#/components/schemas/Milestone'

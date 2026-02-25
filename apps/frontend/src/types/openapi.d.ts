@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/recommend": {
+    "/milestones": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,10 +12,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get recommended baby wear
-         * @description Returns a list of recommended baby wear items based on the baby's age and current temperature.
+         * Get baby wear milestones
+         * @description Returns a list of recommended baby wear items for each month from birth to 2 years old.
          */
-        get: operations["getRecommendation"];
+        get: operations["getMilestones"];
         put?: never;
         post?: never;
         delete?: never;
@@ -40,19 +40,29 @@ export interface components {
              */
             shop_specific_name: string;
         };
-        RecommendationResponse: {
+        Milestone: {
             /**
-             * @description Calculated age in months
-             * @example 4
+             * @description Age in months at this milestone
+             * @example 0
              */
             age_in_months: number;
             /**
+             * Format: date
+             * @description The date corresponding to this milestone
+             * @example 2023-10-01
+             */
+            target_date: string;
+            /**
              * @description Estimated clothing size in cm
-             * @example 60-70cm
+             * @example 50-60cm
              */
             size: string;
             /** @description List of recommended items */
             items: components["schemas"]["Item"][];
+        };
+        MilestoneResponse: {
+            /** @description List of milestones from birth to 24 months */
+            milestones: components["schemas"]["Milestone"][];
         };
     };
     responses: never;
@@ -63,15 +73,13 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    getRecommendation: {
+    getMilestones: {
         parameters: {
             query: {
                 /** @description Baby's birth date (YYYY-MM-DD) */
                 birth_date: string;
                 /** @description Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo) */
                 target_shop?: string;
-                /** @description Target date to wear the baby wear (YYYY-MM-DD), defaults to today */
-                target_date?: string;
             };
             header?: never;
             path?: never;
@@ -79,13 +87,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful recommendation response */
+            /** @description Successful milestones response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecommendationResponse"];
+                    "application/json": components["schemas"]["MilestoneResponse"];
                 };
             };
             /** @description Invalid input parameters */

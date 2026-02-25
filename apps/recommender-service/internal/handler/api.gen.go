@@ -4,9 +4,16 @@
 package handler
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -21,9 +28,9 @@ type Item struct {
 	UniversalName string `json:"universal_name"`
 }
 
-// RecommendationResponse defines model for RecommendationResponse.
-type RecommendationResponse struct {
-	// AgeInMonths Calculated age in months
+// Milestone defines model for Milestone.
+type Milestone struct {
+	// AgeInMonths Age in months at this milestone
 	AgeInMonths int `json:"age_in_months"`
 
 	// Items List of recommended items
@@ -31,25 +38,31 @@ type RecommendationResponse struct {
 
 	// Size Estimated clothing size in cm
 	Size string `json:"size"`
+
+	// TargetDate The date corresponding to this milestone
+	TargetDate openapi_types.Date `json:"target_date"`
 }
 
-// GetRecommendationParams defines parameters for GetRecommendation.
-type GetRecommendationParams struct {
+// MilestoneResponse defines model for MilestoneResponse.
+type MilestoneResponse struct {
+	// Milestones List of milestones from birth to 24 months
+	Milestones []Milestone `json:"milestones"`
+}
+
+// GetMilestonesParams defines parameters for GetMilestones.
+type GetMilestonesParams struct {
 	// BirthDate Baby's birth date (YYYY-MM-DD)
 	BirthDate openapi_types.Date `form:"birth_date" json:"birth_date"`
 
 	// TargetShop Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo)
 	TargetShop *string `form:"target_shop,omitempty" json:"target_shop,omitempty"`
-
-	// TargetDate Target date to wear the baby wear (YYYY-MM-DD), defaults to today
-	TargetDate *openapi_types.Date `form:"target_date,omitempty" json:"target_date,omitempty"`
 }
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get recommended baby wear
-	// (GET /recommend)
-	GetRecommendation(c *gin.Context, params GetRecommendationParams)
+	// Get baby wear milestones
+	// (GET /milestones)
+	GetMilestones(c *gin.Context, params GetMilestonesParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -61,13 +74,13 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(c *gin.Context)
 
-// GetRecommendation operation middleware
-func (siw *ServerInterfaceWrapper) GetRecommendation(c *gin.Context) {
+// GetMilestones operation middleware
+func (siw *ServerInterfaceWrapper) GetMilestones(c *gin.Context) {
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetRecommendationParams
+	var params GetMilestonesParams
 
 	// ------------- Required query parameter "birth_date" -------------
 
@@ -92,14 +105,6 @@ func (siw *ServerInterfaceWrapper) GetRecommendation(c *gin.Context) {
 		return
 	}
 
-	// ------------- Optional query parameter "target_date" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "target_date", c.Request.URL.Query(), &params.TargetDate)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter target_date: %w", err), http.StatusBadRequest)
-		return
-	}
-
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -107,7 +112,7 @@ func (siw *ServerInterfaceWrapper) GetRecommendation(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRecommendation(c, params)
+	siw.Handler.GetMilestones(c, params)
 }
 
 // GinServerOptions provides options for the Gin server.
@@ -137,5 +142,97 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
-	router.GET(options.BaseURL+"/recommend", wrapper.GetRecommendation)
+	router.GET(options.BaseURL+"/milestones", wrapper.GetMilestones)
+}
+
+// Base64 encoded, gzipped, json marshaled Swagger object
+var swaggerSpec = []string{
+
+	"H4sIAAAAAAAC/5xVT4vjxhP9Kk39fpANyLZmZhMW3TZsCIYdWDYbwrAMpi2Vpd6o/0x3aTbOYAjjSw65",
+	"hRxzyyXnOeXz+JB8jFAt/5Et7WTJSba6uuq9eq9Kd5Bb7axBQwGyOwh5hVrGn1NCzU/nrUNPCtuAyrpZ",
+	"cJirhcpnRmrktwWG3CtHyhrI4OvKutEuRnCMsAtBFQrFORPA76V2NUIGm/uHzXq9Wf+0WT9s1r9u1n9s",
+	"7n/f3P8Z3z9s1r/8ff/zX7/9CAnQ0vGFQF6ZElYJNEbdog+y/gCKb3bnPQTiCY7LcSJyq+dqVMlClurT",
+	"PqzHyq8S8HjTKI8FZG9PsSRDbbreJ7Hzd5gTc7hUNQayBvuNliXOlJlpa6gKfXbPSxTKiPZYSBJUqSD0",
+	"Pl+HTbovrAxhiZ4rcx8G0r5UgbhVHnOrNZoCC9GGdq783+MCMvjf5OCdydY4k+ia1b6i9F4u+X9QPwxo",
+	"9GUgpSVhIfLaUqVMKTiQmeXHRvksHX2exnc9I5D0JdKskDRQ4U2Fgk9Ebr3H4KwpuArZRxoG5+n5xegs",
+	"HaVnkMDCei0JMogF/s0Jx7Idg9t2YdfJRw3xOmINA8bYQ35EvkOMWHirxVx5qpj0+VOxh/ZReh4c2hP1",
+	"hHkHV58ZByuzsANGfjUVC+sPjmN55nK+FO9RejGXAQthzZZClFKaQhBqh15S4zER7xVVIvS2ThizAIqi",
+	"pl9wym855RsvTaglWS+ev5pCAjy6LZizcTpOmal1aKRTkMHFOB1fQAJObudwcixAidQn9Rqp8SYIKeqB",
+	"gTqwixJE+ijzqpXmVDGxROmDsHXBdGxkrayZFpDBV0iXBzQM0kuNhD5A9vYUFHfgk9Bt5JOrq6ur0eXl",
+	"6MUL3n+Ko24a9EtIoF2qEKN39j3ITb7BZPu1YPr/dXZ64xrHJWrZrm3uzV5UQq+VsbUtl7sd3hh1U9tE",
+	"GBUqXiWhWcpEyO9kXkkzq6xx9kPUtqPJtWCYS5t8APc196Id0GiC8zTlR24NoYl+kM7VKo9KTd4F5nbX",
+	"KfFRE7dfAXF6Tj6xTZ5jCIum7s66399I4GkL6fja1NzKWhVCGdeQ6LiFK4RGa+mXra06Ju34PSIJ6G+H",
+	"HfbS5rIW7Tkk0PgaMqiIXDaZ1HxW2UDZs/RZCqvr1T8BAAD//9/PslZ8CAAA",
+}
+
+// GetSwagger returns the content of the embedded swagger specification file
+// or error if failed to decode
+func decodeSpec() ([]byte, error) {
+	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
+	if err != nil {
+		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(zipped))
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(zr)
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var rawSpec = decodeSpecCached()
+
+// a naive cached of a decoded swagger spec
+func decodeSpecCached() func() ([]byte, error) {
+	data, err := decodeSpec()
+	return func() ([]byte, error) {
+		return data, err
+	}
+}
+
+// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
+func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
+	res := make(map[string]func() ([]byte, error))
+	if len(pathToFile) > 0 {
+		res[pathToFile] = rawSpec
+	}
+
+	return res
+}
+
+// GetSwagger returns the Swagger specification corresponding to the generated code
+// in this file. The external references of Swagger specification are resolved.
+// The logic of resolving external references is tightly connected to "import-mapping" feature.
+// Externally referenced files must be embedded in the corresponding golang packages.
+// Urls can be supported but this task was out of the scope.
+func GetSwagger() (swagger *openapi3.T, err error) {
+	resolvePath := PathToRawSpec("")
+
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		pathToFile := url.String()
+		pathToFile = path.Clean(pathToFile)
+		getSpec, ok := resolvePath[pathToFile]
+		if !ok {
+			err1 := fmt.Errorf("path not found: %s", pathToFile)
+			return nil, err1
+		}
+		return getSpec()
+	}
+	var specData []byte
+	specData, err = rawSpec()
+	if err != nil {
+		return
+	}
+	swagger, err = loader.LoadFromData(specData)
+	if err != nil {
+		return
+	}
+	return
 }

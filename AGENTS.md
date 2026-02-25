@@ -50,7 +50,7 @@ baby-wear-translator/
 4. 直近のアクションアイテム
 [x] モノレポのルートディレクトリ構築と Makefile の初期設定
 
-[ ] gRPC通信の土台となる weather.proto ファイルの作成
+[x] gRPC通信の土台となる weather.proto ファイルの作成
 
 [x] 全サービス（Frontend, API Gateway, Weather Service等）を連携して立ち上げる docker-compose.yml の作成と起動確認
 

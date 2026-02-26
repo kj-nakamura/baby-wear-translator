@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 
 interface RecommendationFormProps {
-  onSubmit: (birthDate: string, targetDate: string, targetShop: string) => void;
+  onSubmit: (birthDate: string, targetShop: string) => void;
 }
 
-// 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
+// 日付を YYYY-MM-DD 形式で返す
 function formatDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -14,7 +14,7 @@ function formatDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-// 今日の日付を YYYY-MM-DD 形式で返す（inputの max 属性に使用）
+// 今日の日付を YYYY-MM-DD 形式で返す
 function todayString(): string {
   return formatDate(new Date());
 }
@@ -28,33 +28,12 @@ function sixMonthsAgoString(): string {
 
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
   const [birthDate, setBirthDate] = useState(() => sixMonthsAgoString());
-  const [targetDate, setTargetDate] = useState(() => todayString());
   const [targetShop, setTargetShop] = useState('nishimatsuya');
-  const [dateError, setDateError] = useState('');
-  const handleDateChange = (newBirthDate: string, newTargetDate: string) => {
-    setBirthDate(newBirthDate);
-    setTargetDate(newTargetDate);
-
-    if (newBirthDate && newTargetDate && newBirthDate > newTargetDate) {
-      setDateError('生年月日は着せたい日付より前である必要があります。');
-    } else {
-      setDateError('');
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // submit 時にも再チェック
-    if (birthDate > targetDate) {
-      setDateError('生年月日は着せたい日付より前である必要があります。');
-      return;
-    }
-
-    onSubmit(birthDate, targetDate, targetShop);
+    onSubmit(birthDate, targetShop);
   };
-
-  const hasDateError = !!dateError;
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md space-y-4 text-black">
@@ -65,36 +44,12 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
           id="birth-date-input"
           type="date"
           required
-          max={targetDate}
+          max={todayString()}
           value={birthDate}
-          onChange={(e) => handleDateChange(e.target.value, targetDate)}
-          className={`mt-1 block w-full border rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 ${hasDateError
-            ? 'border-red-400 focus:ring-red-400 bg-red-50'
-            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-            }`}
+          onChange={(e) => setBirthDate(e.target.value)}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">着せたい日付</label>
-        <input
-          suppressHydrationWarning
-          id="target-date-input"
-          type="date"
-          required
-          min={birthDate}
-          value={targetDate}
-          onChange={(e) => handleDateChange(birthDate, e.target.value)}
-          className={`mt-1 block w-full border rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 ${hasDateError
-            ? 'border-red-400 focus:ring-red-400 bg-red-50'
-            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-            }`}
-        />
-        {hasDateError && (
-          <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-            <span>⚠️</span> {dateError}
-          </p>
-        )}
+        <p className="mt-1 text-xs text-gray-400">誕生日から2歳までのマイルストーンを表示します</p>
       </div>
 
       <div>
@@ -114,10 +69,9 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
       <button
         id="submit-button"
         type="submit"
-        disabled={hasDateError}
-        className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200"
       >
-        おすすめを提案してもらう
+        マイルストーンを表示する
       </button>
     </form>
   );

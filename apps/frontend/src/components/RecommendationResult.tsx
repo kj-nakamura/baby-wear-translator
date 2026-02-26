@@ -44,9 +44,9 @@ const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onCli
             <div className={`h-1 mx-auto mb-4 ${isSelected ? 'bg-blue-600' : 'bg-gray-200'}`} />
             <div className="text-center">
                 <p className={`text-xs font-bold ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
-                    {milestone.age_in_months}ヶ月
+                    {milestone.target_date}
                 </p>
-                <p className="text-[10px] text-gray-400">{milestone.target_date}</p>
+                <p className="text-[10px] text-gray-400">{milestone.items.length === 0 ? '予定' : `${milestone.age_in_months}ヶ月`}</p>
             </div>
         </div>
     );
@@ -57,6 +57,8 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
     const selectedMilestone = result.milestones[selectedIndex];
 
     if (!selectedMilestone) return null;
+
+    const isInitial = selectedMilestone.items.length === 0;
 
     return (
         <div className="w-full space-y-8 animate-fade-in">
@@ -80,45 +82,62 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-6 text-white text-center">
                     <div className="flex justify-center items-center gap-4 mb-2">
-                        <span className="text-4xl">🍼</span>
+                        <span className="text-4xl">{isInitial ? '🗓️' : '🍼'}</span>
                         <div className="text-left">
-                            <p className="text-sm font-medium opacity-80">生後 {selectedMilestone.age_in_months} ヶ月頃</p>
-                            <h3 className="text-2xl font-black">{selectedMilestone.target_date} のおすすめ</h3>
+                            <p className="text-sm font-medium opacity-80">
+                                {isInitial ? '未来の成長ライン' : `生後 ${selectedMilestone.age_in_months} ヶ月頃`}
+                            </p>
+                            <h3 className="text-2xl font-black">
+                                {selectedMilestone.target_date} {isInitial ? 'の予定' : 'のおすすめ'}
+                            </h3>
                         </div>
                     </div>
                     <div className="inline-block bg-white/20 backdrop-blur-md rounded-full px-4 py-1 text-sm font-bold">
-                        📏 目安サイズ: {selectedMilestone.size}
+                        {isInitial ? '📏 サイズをチェック' : `📏 目安サイズ: ${selectedMilestone.size}`}
                     </div>
                 </div>
 
                 <div className="p-6">
-                    <div className="grid gap-4">
-                        {selectedMilestone.items.map((item, idx) => {
-                            const meta = getItemMeta(item.universal_name);
-                            return (
-                                <div
-                                    key={idx}
-                                    className="flex items-center gap-4 p-4 rounded-2xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all group"
-                                >
+                    {selectedMilestone.items.length > 0 ? (
+                        <div className="grid gap-4">
+                            {selectedMilestone.items.map((item, idx) => {
+                                const meta = getItemMeta(item.universal_name);
+                                return (
                                     <div
-                                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm"
-                                        style={{ backgroundColor: meta.color }}
+                                        key={idx}
+                                        className="flex items-center gap-4 p-4 rounded-2xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all group"
                                     >
-                                        {meta.emoji}
+                                        <div
+                                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm"
+                                            style={{ backgroundColor: meta.color }}
+                                        >
+                                            {meta.emoji}
+                                        </div>
+                                        <div className="flex-grow">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                                                {meta.label}
+                                            </p>
+                                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                {item.shop_specific_name}
+                                            </h4>
+                                            <p className="text-xs text-gray-400">汎用名: {item.universal_name}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex-grow">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
-                                            {meta.label}
-                                        </p>
-                                        <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                            {item.shop_specific_name}
-                                        </h4>
-                                        <p className="text-xs text-gray-400">汎用名: {item.universal_name}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 px-4 space-y-4">
+                            <div className="text-4xl">⌨️</div>
+                            <div>
+                                <p className="text-lg font-bold text-gray-900">生年月日を入力してください</p>
+                                <p className="text-sm text-gray-500">
+                                    上のフォームから誕生日を入力して「表示する」を押すと、<br />
+                                    その時期にぴったりのベビー服が表示されます。
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

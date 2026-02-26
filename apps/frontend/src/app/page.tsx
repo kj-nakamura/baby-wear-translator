@@ -39,17 +39,6 @@ export default function Home() {
           <RecommendationForm onSubmit={handleSubmit} />
         </section>
 
-        {/* ローディング */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
-            <div className="relative">
-              <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
-              <div className="absolute inset-0 flex items-center justify-center text-xl">👶</div>
-            </div>
-            <p className="text-sm font-bold animate-pulse text-blue-600">マイルストーンを生成中…</p>
-          </div>
-        )}
-
         {/* エラー */}
         {error && !loading && (
           <div className="flex items-start gap-4 rounded-3xl border border-red-100 bg-red-50/50 p-6 text-red-700 backdrop-blur-sm">
@@ -68,32 +57,27 @@ export default function Home() {
         )}
 
         {/* 結果表示 */}
-        {data && !loading && (
-          <section className="relative">
+        {data && (
+          <section className="relative transition-all duration-500">
             <div className="absolute -top-6 -left-2 text-xs font-black uppercase tracking-widest text-indigo-200 select-none">
               Milestones
             </div>
-            <RecommendationResult result={data} shopName={selectedShop} />
-          </section>
-        )}
+            <div className={loading ? 'opacity-40 grayscale-[0.5] pointer-events-none blur-[1px] transition-all duration-300' : 'transition-all duration-300'}>
+              <RecommendationResult result={data} shopName={selectedShop} />
+            </div>
 
-        {/* 初期状態のヒント */}
-        {!data && !loading && !error && (
-          <div className="flex flex-col items-center gap-6 py-16 text-center">
-            <div className="h-24 w-24 bg-white rounded-full flex items-center justify-center shadow-inner text-5xl">
-              ✨
-            </div>
-            <div className="space-y-2">
-              <p className="text-lg font-black text-gray-900">
-                あなたの赤ちゃんの成長ラインを<br />
-                今すぐチェック
-              </p>
-              <p className="text-sm font-medium text-gray-400">
-                生年月日を入力するだけで、2歳までの<br />
-                おすすめコーディネートを自動生成します。
-              </p>
-            </div>
-          </div>
+            {loading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-20">
+                <div className="relative">
+                  <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500/20 border-t-blue-600" />
+                  <div className="absolute inset-0 flex items-center justify-center text-xl">👶</div>
+                </div>
+                <p className="text-sm font-black text-blue-600 animate-pulse bg-white/80 px-4 py-1 rounded-full shadow-sm backdrop-blur-sm">
+                  マイルストーンを更新中…
+                </p>
+              </div>
+            )}
+          </section>
         )}
       </main>
 

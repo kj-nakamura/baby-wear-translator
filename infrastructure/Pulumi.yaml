@@ -1,4 +1,4 @@
-name: infrastructure
+name: baby-wear-translator
 description: A minimal Google Cloud TypeScript Pulumi program
 runtime:
   name: nodejs

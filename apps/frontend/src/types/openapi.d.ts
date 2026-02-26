@@ -39,6 +39,12 @@ export interface components {
              * @example コットンフライスコンビ肌着
              */
             shop_specific_name: string;
+            /** @description Category label for display */
+            category_label: string;
+            /** @description Emoji represention of the category */
+            category_emoji: string;
+            /** @description Background color for item icon */
+            category_color: string;
         };
         Milestone: {
             /**

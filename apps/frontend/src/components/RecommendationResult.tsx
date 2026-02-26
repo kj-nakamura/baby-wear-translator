@@ -8,28 +8,6 @@ interface RecommendationResultProps {
     shopName: string;
 }
 
-const CATEGORY_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
-    コンビ肌着: { label: 'インナー', emoji: '👶', color: '#FFF3E0' },
-    短肌着: { label: 'インナー', emoji: '👶', color: '#FFF3E0' },
-    長肌着: { label: 'インナー', emoji: '👶', color: '#FFF3E0' },
-    ロンパース: { label: 'ミドル', emoji: '🧸', color: '#E3F2FD' },
-    カバーオール: { label: 'アウター', emoji: '🧥', color: '#EDE7F6' },
-    プレオール: { label: 'アウター', emoji: '🧥', color: '#EDE7F6' },
-    フリース: { label: 'アウター', emoji: '🧥', color: '#EDE7F6' },
-    ダウン: { label: 'アウター', emoji: '🧥', color: '#EDE7F6' },
-    防寒ウェア: { label: 'アウター', emoji: '🧥', color: '#EDE7F6' },
-    アウター: { label: 'アウター', emoji: '🧥', color: '#EDE7F6' },
-};
-
-function getItemMeta(universalName: string) {
-    for (const key of Object.keys(CATEGORY_LABELS)) {
-        if (universalName.includes(key)) {
-            return CATEGORY_LABELS[key];
-        }
-    }
-    return { label: 'アイテム', emoji: '👕', color: '#F3F4F6' };
-}
-
 const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onClick: () => void }> = ({
     milestone,
     isSelected,
@@ -118,7 +96,6 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                     {selectedMilestone.items.length > 0 ? (
                         <div className="grid gap-4">
                             {selectedMilestone.items.map((item, idx) => {
-                                const meta = getItemMeta(item.universal_name);
                                 return (
                                     <div
                                         key={idx}
@@ -126,13 +103,13 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                                     >
                                         <div
                                             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm"
-                                            style={{ backgroundColor: meta.color }}
+                                            style={{ backgroundColor: item.category_color }}
                                         >
-                                            {meta.emoji}
+                                            {item.category_emoji}
                                         </div>
                                         <div className="flex-grow">
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
-                                                {meta.label}
+                                                {item.category_label}
                                             </p>
                                             <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                                                 {item.shop_specific_name}

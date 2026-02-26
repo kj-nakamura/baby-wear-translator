@@ -29,3 +29,19 @@ var ShopSpecificNames = map[string]map[string]string{
 		"akachan_honpo": "ロンパース",
 	},
 }
+
+// Category はアイテムのカテゴリー情報です
+type Category struct {
+	Label string
+	Emoji string
+	Color string
+}
+
+// ItemCategories は汎用名からカテゴリー情報へのマップです
+var ItemCategories = map[string]Category{
+	"短肌着":     {Label: "インナー", Emoji: "👶", Color: "#FFF3E0"},
+	"コンビ肌着":   {Label: "インナー", Emoji: "👶", Color: "#FFF3E0"},
+	"ボディースーツ": {Label: "ミドル", Emoji: "🧸", Color: "#E3F2FD"},
+	"カバーオール":  {Label: "アウター", Emoji: "🧥", Color: "#EDE7F6"},
+	"ロンパース":   {Label: "ミドル", Emoji: "🧸", Color: "#E3F2FD"},
+}

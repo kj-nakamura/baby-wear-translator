@@ -21,6 +21,15 @@ import (
 
 // Item defines model for Item.
 type Item struct {
+	// CategoryColor Background color for item icon
+	CategoryColor string `json:"category_color"`
+
+	// CategoryEmoji Emoji represention of the category
+	CategoryEmoji string `json:"category_emoji"`
+
+	// CategoryLabel Category label for display
+	CategoryLabel string `json:"category_label"`
+
 	// ShopSpecificName Shop-specific name of the item
 	ShopSpecificName string `json:"shop_specific_name"`
 

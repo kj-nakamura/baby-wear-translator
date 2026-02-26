@@ -47,9 +47,22 @@ func (h *RecommendHandler) GetMilestones(c *gin.Context, params GetMilestonesPar
 				}
 			}
 
+			// カテゴリー情報の取得
+			cat := domain.Category{
+				Label: "アイテム",
+				Emoji: "👕",
+				Color: "#F3F4F6",
+			}
+			if c, ok := domain.ItemCategories[uname]; ok {
+				cat = c
+			}
+
 			items = append(items, Item{
 				UniversalName:    uname,
 				ShopSpecificName: specificName,
+				CategoryLabel:    cat.Label,
+				CategoryEmoji:    cat.Emoji,
+				CategoryColor:    cat.Color,
 			})
 		}
 

@@ -29,13 +29,13 @@ paths:
             type: string
             example: "uniqlo"
       responses:
-        '200':
+        "200":
           description: Successful milestones response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MilestoneResponse'
-        '400':
+                $ref: "#/components/schemas/MilestoneResponse"
+        "400":
           description: Invalid input parameters
 
 components:
@@ -45,6 +45,9 @@ components:
       required:
         - universal_name
         - shop_specific_name
+        - category_label
+        - category_emoji
+        - category_color
       properties:
         universal_name:
           type: string
@@ -54,7 +57,19 @@ components:
           type: string
           description: Shop-specific name of the item
           example: "コットンフライスコンビ肌着"
-    
+        category_label:
+          type: string
+          description: Category label for display
+          example: "インナー"
+        category_emoji:
+          type: string
+          description: Emoji represention of the category
+          example: "👶"
+        category_color:
+          type: string
+          description: Background color for item icon
+          example: "#FFF3E0"
+
     Milestone:
       type: object
       required:
@@ -80,7 +95,7 @@ components:
           type: array
           description: List of recommended items
           items:
-            $ref: '#/components/schemas/Item'
+            $ref: "#/components/schemas/Item"
 
     MilestoneResponse:
       type: object
@@ -91,4 +106,4 @@ components:
           type: array
           description: List of milestones from birth to 24 months
           items:
-            $ref: '#/components/schemas/Milestone'
+            $ref: "#/components/schemas/Milestone"

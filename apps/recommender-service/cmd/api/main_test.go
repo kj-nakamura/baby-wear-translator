@@ -14,7 +14,7 @@ func TestSetupRouter_CORS(t *testing.T) {
 
 	// Test case: Valid Origin
 	t.Run("Valid Origin", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodOptions, "/recommend", nil)
+		req, _ := http.NewRequest(http.MethodOptions, "/milestones", nil)
 		req.Header.Set("Origin", "http://localhost:3000")
 		req.Header.Set("Access-Control-Request-Method", "GET")
 
@@ -33,7 +33,7 @@ func TestSetupRouter_CORS(t *testing.T) {
 
 	// Test case: Invalid Origin
 	t.Run("Invalid Origin", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodOptions, "/recommend", nil)
+		req, _ := http.NewRequest(http.MethodOptions, "/milestones", nil)
 		req.Header.Set("Origin", "http://malicious-site.com")
 		req.Header.Set("Access-Control-Request-Method", "GET")
 

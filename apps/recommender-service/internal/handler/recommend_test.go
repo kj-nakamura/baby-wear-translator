@@ -19,22 +19,6 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
-// milestoneResponse はテスト用のレスポンス型です。
-type milestoneResponse struct {
-	Milestones []struct {
-		AgeInMonths int    `json:"age_in_months"`
-		TargetDate  string `json:"target_date"`
-		Size        string `json:"size"`
-		Items       []struct {
-			UniversalName string `json:"universal_name"`
-			ShopNames     []struct {
-				ShopKey  string `json:"shop_key"`
-				ShopName string `json:"shop_name"`
-			} `json:"shop_names"`
-		} `json:"items"`
-	} `json:"milestones"`
-}
-
 // doRequest はテスト用 HTTP リクエストを実行するヘルパーです。
 func doRequest(t *testing.T, r *gin.Engine, url string) *httptest.ResponseRecorder {
 	t.Helper()
@@ -59,7 +43,7 @@ func TestGetMilestones_OK_BasicResponse(t *testing.T) {
 		t.Fatalf("status = %d, want %d; body = %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp milestoneResponse
+	var resp handler.MilestoneResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("json.Unmarshal: %v; body = %s", err, w.Body.String())
 	}
@@ -75,6 +59,13 @@ func TestGetMilestones_OK_BasicResponse(t *testing.T) {
 	}
 	if len(m0.Items) == 0 {
 		t.Error("milestone[0].items should not be empty")
+	}
+
+	// カテゴリー情報のチェック
+	item0 := m0.Items[0]
+	if item0.CategoryLabel == "" || item0.CategoryEmoji == "" || item0.CategoryColor == "" {
+		t.Errorf("item category metadata missing: label=%q, emoji=%q, color=%q",
+			item0.CategoryLabel, item0.CategoryEmoji, item0.CategoryColor)
 	}
 }
 
@@ -120,7 +111,7 @@ func TestGetMilestones_OK_AllShopNames(t *testing.T) {
 				t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
 			}
 
-			var resp milestoneResponse
+			var resp handler.MilestoneResponse
 			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 				t.Fatalf("json.Unmarshal: %v", err)
 			}

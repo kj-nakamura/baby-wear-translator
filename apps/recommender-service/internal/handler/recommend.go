@@ -18,10 +18,6 @@ func NewRecommendHandler() *RecommendHandler {
 // GetMilestones は GET /milestones エンドポイントを処理します
 func (h *RecommendHandler) GetMilestones(c *gin.Context, params GetMilestonesParams) {
 	birthDate := params.BirthDate.Time
-	selectedShop := ""
-	if params.TargetShop != nil {
-		selectedShop = string(*params.TargetShop)
-	}
 
 	milestones := make([]Milestone, 0, 25)
 
@@ -39,11 +35,14 @@ func (h *RecommendHandler) GetMilestones(c *gin.Context, params GetMilestonesPar
 		// アイテムの構築
 		items := make([]Item, 0, len(universalNames))
 		for _, uname := range universalNames {
-			// 選択ショップの固有名
-			specificName := uname
+			// ショップごとの名前リストを構築
+			shopNames := make([]ShopNameStatus, 0)
 			if shopMap, ok := domain.ShopSpecificNames[uname]; ok {
-				if sName, ok := shopMap[selectedShop]; ok {
-					specificName = sName
+				for shopKey, sName := range shopMap {
+					shopNames = append(shopNames, ShopNameStatus{
+						ShopKey:  shopKey,
+						ShopName: sName,
+					})
 				}
 			}
 
@@ -58,11 +57,11 @@ func (h *RecommendHandler) GetMilestones(c *gin.Context, params GetMilestonesPar
 			}
 
 			items = append(items, Item{
-				UniversalName:    uname,
-				ShopSpecificName: specificName,
-				CategoryLabel:    cat.Label,
-				CategoryEmoji:    cat.Emoji,
-				CategoryColor:    cat.Color,
+				UniversalName: uname,
+				ShopNames:     shopNames,
+				CategoryLabel: cat.Label,
+				CategoryEmoji: cat.Emoji,
+				CategoryColor: cat.Color,
 			})
 		}
 

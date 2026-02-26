@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 
 interface RecommendationFormProps {
-  onSubmit: (birthDate: string, targetShop: string) => void;
+  onSubmit: (birthDate: string) => void;
 }
 
 // 日付を YYYY-MM-DD 形式で返す
@@ -21,11 +21,10 @@ function todayString(): string {
 
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
   const [birthDate, setBirthDate] = useState('2025-10-23');
-  const [targetShop, setTargetShop] = useState('nishimatsuya');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(birthDate, targetShop);
+    onSubmit(birthDate);
   };
 
   return (
@@ -43,20 +42,6 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <p className="mt-1 text-xs text-gray-400">誕生日から2歳までのマイルストーンを表示します</p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">よく行くショップ</label>
-        <select
-          id="target-shop-select"
-          value={targetShop}
-          onChange={(e) => setTargetShop(e.target.value)}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="nishimatsuya">西松屋</option>
-          <option value="uniqlo">ユニクロ</option>
-          <option value="akachan_honpo">アカチャンホンポ</option>
-        </select>
       </div>
 
       <button

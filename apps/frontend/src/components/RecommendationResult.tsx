@@ -5,7 +5,6 @@ import { MilestoneResponse, Milestone } from '@/hooks/useMilestones';
 
 interface RecommendationResultProps {
     result: MilestoneResponse;
-    shopName: string;
 }
 
 const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onClick: () => void }> = ({
@@ -16,10 +15,10 @@ const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onCli
     return (
         <div
             onClick={onClick}
-            className={`flex-shrink-0 w-32 cursor-pointer transition-all duration-300 ${isSelected ? 'scale-110' : 'opacity-60 hover:opacity-100'
+            className={`flex-shrink-0 w-32 cursor-pointer transition-all duration-300 ${isSelected ? 'scale-105' : 'opacity-60 hover:opacity-100'
                 }`}
         >
-            <div className={`h-1 mx-auto mb-4 ${isSelected ? 'bg-blue-600' : 'bg-gray-200'}`} />
+            <div className={`h-1 mx-auto mb-4 rounded-full ${isSelected ? 'bg-blue-600 w-full' : 'bg-gray-200 w-1/2'}`} />
             <div className="text-center">
                 <p className={`text-xs font-bold ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
                     {milestone.target_date}
@@ -30,8 +29,16 @@ const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onCli
     );
 };
 
-const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, shopName }) => {
+// ショップ名を表示するためのフレンドリーな名前マップ
+const SHOP_DISPLAY_NAMES: Record<string, string> = {
+    'nishimatsuya': '西松屋',
+    'uniqlo': 'ユニクロ',
+    'akachan_honpo': 'アカチャンホンポ',
+};
+
+const RecommendationResult: React.FC<RecommendationResultProps> = ({ result }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [selectedItem, setSelectedItem] = useState<Milestone['items'][0] | null>(null);
 
     // 検索結果（result）が更新されたら、選択を一番左（現在月）にリセットする
     React.useEffect(() => {
@@ -99,10 +106,11 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                                 return (
                                     <div
                                         key={idx}
-                                        className="flex items-center gap-4 p-4 rounded-2xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all group"
+                                        onClick={() => setSelectedItem(item)}
+                                        className="flex items-center gap-4 p-4 rounded-2xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-lg hover:border-blue-100 transition-all group cursor-pointer"
                                     >
                                         <div
-                                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm"
+                                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm group-hover:scale-110 transition-transform"
                                             style={{ backgroundColor: item.category_color }}
                                         >
                                             {item.category_emoji}
@@ -112,9 +120,12 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                                                 {item.category_label}
                                             </p>
                                             <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                {item.shop_specific_name}
+                                                {item.universal_name}
                                             </h4>
-                                            <p className="text-xs text-gray-400">汎用名: {item.universal_name}</p>
+                                            <p className="text-xs text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                                <span>ショップごとの名称を見る</span>
+                                                <span className="text-[10px]">▶</span>
+                                            </p>
                                         </div>
                                     </div>
                                 );
@@ -134,6 +145,58 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
                     )}
                 </div>
             </div>
+
+            {/* ショップ名表示モーダル */}
+            {selectedItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+                        onClick={() => setSelectedItem(null)}
+                    />
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
+                        <div
+                            className="p-8 text-center relative overflow-hidden"
+                            style={{ backgroundColor: selectedItem.category_color }}
+                        >
+                            {/* 装飾用背景パターン */}
+                            <div className="absolute inset-0 opacity-10 pointer-events-none select-none text-[100px] flex items-center justify-center">
+                                {selectedItem.category_emoji}
+                            </div>
+
+                            <div className="relative z-10 space-y-2">
+                                <div className="inline-flex items-center justify-center w-20 h-20 bg-white/90 rounded-3xl shadow-inner text-4xl mb-2 animate-bounce-slow">
+                                    {selectedItem.category_emoji}
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 leading-tight">{selectedItem.universal_name}</h3>
+                                <div className="inline-block px-3 py-1 bg-gray-900/5 rounded-full">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{selectedItem.category_label}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm font-bold text-gray-400 border-b pb-2">ショップごとの名称</p>
+                            <div className="space-y-4">
+                                {selectedItem.shop_names.map((sn, idx) => (
+                                    <div key={idx} className="flex justify-between items-center group">
+                                        <div className="text-sm font-bold text-gray-500">
+                                            {SHOP_DISPLAY_NAMES[sn.shop_key] || sn.shop_key}
+                                        </div>
+                                        <div className="text-md font-black text-gray-900 group-hover:text-blue-600 transition-colors">
+                                            {sn.shop_name}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setSelectedItem(null)}
+                                className="w-full mt-6 bg-gray-900 text-white font-black py-3 rounded-2xl hover:bg-gray-800 transition-all active:scale-95"
+                            >
+                                閉じる
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

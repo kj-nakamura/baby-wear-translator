@@ -34,17 +34,35 @@ export interface components {
              * @example コンビ肌着
              */
             universal_name: string;
+            /** @description Shop-specific names of the item */
+            shop_names: components["schemas"]["ShopNameStatus"][];
             /**
-             * @description Shop-specific name of the item
+             * @description Category label for display
+             * @example インナー
+             */
+            category_label: string;
+            /**
+             * @description Emoji represention of the category
+             * @example 👶
+             */
+            category_emoji: string;
+            /**
+             * @description Background color for item icon
+             * @example #FFF3E0
+             */
+            category_color: string;
+        };
+        ShopNameStatus: {
+            /**
+             * @description Unique key for the shop
+             * @example uniqlo
+             */
+            shop_key: string;
+            /**
+             * @description Name of the item at this shop
              * @example コットンフライスコンビ肌着
              */
-            shop_specific_name: string;
-            /** @description Category label for display */
-            category_label: string;
-            /** @description Emoji represention of the category */
-            category_emoji: string;
-            /** @description Background color for item icon */
-            category_color: string;
+            shop_name: string;
         };
         Milestone: {
             /**
@@ -84,8 +102,6 @@ export interface operations {
             query: {
                 /** @description Baby's birth date (YYYY-MM-DD) */
                 birth_date: string;
-                /** @description Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo) */
-                target_shop?: string;
             };
             header?: never;
             path?: never;

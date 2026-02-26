@@ -29,14 +29,13 @@ export const useMilestones = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMilestones = async (birthDate: string, targetShop?: string) => {
+  const fetchMilestones = async (birthDate: string) => {
     setLoading(true);
     setError(null);
     try {
       const query = new URLSearchParams({
         birth_date: birthDate,
       });
-      if (targetShop) query.append('target_shop', targetShop);
 
       const response = await fetch(`http://localhost:8080/milestones?${query.toString()}`);
       if (!response.ok) {

@@ -21,13 +21,6 @@ paths:
             type: string
             format: date
             example: "2023-10-01"
-        - name: target_shop
-          in: query
-          description: Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo)
-          required: false
-          schema:
-            type: string
-            example: "uniqlo"
       responses:
         "200":
           description: Successful milestones response
@@ -44,7 +37,7 @@ components:
       type: object
       required:
         - universal_name
-        - shop_specific_name
+        - shop_names
         - category_label
         - category_emoji
         - category_color
@@ -53,10 +46,11 @@ components:
           type: string
           description: Universal name of the item (e.g., combi-hadagi)
           example: "コンビ肌着"
-        shop_specific_name:
-          type: string
-          description: Shop-specific name of the item
-          example: "コットンフライスコンビ肌着"
+        shop_names:
+          type: array
+          description: Shop-specific names of the item
+          items:
+            $ref: "#/components/schemas/ShopNameStatus"
         category_label:
           type: string
           description: Category label for display
@@ -69,6 +63,21 @@ components:
           type: string
           description: Background color for item icon
           example: "#FFF3E0"
+
+    ShopNameStatus:
+      type: object
+      required:
+        - shop_key
+        - shop_name
+      properties:
+        shop_key:
+          type: string
+          description: Unique key for the shop
+          example: "uniqlo"
+        shop_name:
+          type: string
+          description: Name of the item at this shop
+          example: "コットンフライスコンビ肌着"
 
     Milestone:
       type: object

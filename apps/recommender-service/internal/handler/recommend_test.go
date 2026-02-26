@@ -26,8 +26,11 @@ type milestoneResponse struct {
 		TargetDate  string `json:"target_date"`
 		Size        string `json:"size"`
 		Items       []struct {
-			UniversalName    string `json:"universal_name"`
-			ShopSpecificName string `json:"shop_specific_name"`
+			UniversalName string `json:"universal_name"`
+			ShopNames     []struct {
+				ShopKey  string `json:"shop_key"`
+				ShopName string `json:"shop_name"`
+			} `json:"shop_names"`
 		} `json:"items"`
 	} `json:"milestones"`
 }
@@ -50,7 +53,7 @@ func doRequest(t *testing.T, r *gin.Engine, url string) *httptest.ResponseRecord
 
 func TestGetMilestones_OK_BasicResponse(t *testing.T) {
 	r := setupRouter()
-	w := doRequest(t, r, "/milestones?birth_date=2025-10-01&target_shop=nishimatsuya")
+	w := doRequest(t, r, "/milestones?birth_date=2025-10-01")
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body = %s", w.Code, http.StatusOK, w.Body.String())
@@ -75,33 +78,33 @@ func TestGetMilestones_OK_BasicResponse(t *testing.T) {
 	}
 }
 
-func TestGetMilestones_OK_ShopSpecificName(t *testing.T) {
+func TestGetMilestones_OK_AllShopNames(t *testing.T) {
 	r := setupRouter()
 
 	tests := []struct {
 		name       string
-		shop       string
+		targetShop string
 		wantName   string // カバーオールの固有名
 		birthDate  string
 		targetItem string // universal_name
 	}{
 		{
 			name:       "西松屋: カバーオール → プレオール",
-			shop:       "nishimatsuya",
+			targetShop: "nishimatsuya",
 			wantName:   "プレオール",
 			birthDate:  "2025-10-01",
 			targetItem: "カバーオール",
 		},
 		{
 			name:       "ユニクロ: カバーオール → フライスカバーオール",
-			shop:       "uniqlo",
+			targetShop: "uniqlo",
 			wantName:   "フライスカバーオール",
 			birthDate:  "2025-10-01",
 			targetItem: "カバーオール",
 		},
 		{
 			name:       "アカチャンホンポ: カバーオール → ドレスオール",
-			shop:       "akachan_honpo",
+			targetShop: "akachan_honpo",
 			wantName:   "ドレスオール",
 			birthDate:  "2025-10-01",
 			targetItem: "カバーオール",
@@ -110,7 +113,7 @@ func TestGetMilestones_OK_ShopSpecificName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url := "/milestones?birth_date=" + tt.birthDate + "&target_shop=" + tt.shop
+			url := "/milestones?birth_date=" + tt.birthDate
 			w := doRequest(t, r, url)
 
 			if w.Code != http.StatusOK {
@@ -122,15 +125,24 @@ func TestGetMilestones_OK_ShopSpecificName(t *testing.T) {
 				t.Fatalf("json.Unmarshal: %v", err)
 			}
 
-			// いずれかのマイルストーンで targetItem が含まれている場合、その名前を検証する
+			// いずれかのマイルストーンで targetItem が含まれている場合、そのショップ名リストの中に期待する名前があるか検証する
 			found := false
 			for _, m := range resp.Milestones {
 				for _, item := range m.Items {
 					if item.UniversalName == tt.targetItem {
 						found = true
-						if item.ShopSpecificName != tt.wantName {
-							t.Errorf("shop=%s, universal=%s: shop_specific_name = %q, want %q",
-								tt.shop, tt.targetItem, item.ShopSpecificName, tt.wantName)
+						shopNameFound := false
+						for _, sn := range item.ShopNames {
+							if sn.ShopKey == tt.targetShop {
+								shopNameFound = true
+								if sn.ShopName != tt.wantName {
+									t.Errorf("shop=%s, universal=%s: shop_name = %q, want %q",
+										tt.targetShop, tt.targetItem, sn.ShopName, tt.wantName)
+								}
+							}
+						}
+						if !shopNameFound {
+							t.Errorf("shop %q not found in shop_names for item %q", tt.targetShop, tt.targetItem)
 						}
 					}
 				}

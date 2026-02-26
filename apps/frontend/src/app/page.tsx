@@ -6,12 +6,10 @@ import RecommendationResult from '@/components/RecommendationResult';
 import { useMilestones } from '@/hooks/useMilestones';
 
 export default function Home() {
-  const [selectedShop, setSelectedShop] = useState('nishimatsuya');
   const { data, loading, error, fetchMilestones } = useMilestones();
 
-  const handleSubmit = (birthDate: string, targetShop: string) => {
-    setSelectedShop(targetShop);
-    fetchMilestones(birthDate, targetShop);
+  const handleSubmit = (birthDate: string) => {
+    fetchMilestones(birthDate);
   };
 
   return (
@@ -63,7 +61,7 @@ export default function Home() {
               Milestones
             </div>
             <div className={loading ? 'opacity-40 grayscale-[0.5] pointer-events-none blur-[1px] transition-all duration-300' : 'transition-all duration-300'}>
-              <RecommendationResult result={data} shopName={selectedShop} />
+              <RecommendationResult result={data} />
             </div>
 
             {loading && (

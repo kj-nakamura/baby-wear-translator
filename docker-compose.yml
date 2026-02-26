@@ -2,13 +2,13 @@ services:
   # フロントエンド (Next.js)
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/frontend
       dockerfile: Dockerfile
     container_name: baby_wear_frontend
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend:/app
+      - ./apps/frontend:/app
       - /app/node_modules
       - /app/.next
     environment:
@@ -18,12 +18,12 @@ services:
   # 服の推薦・履歴管理サービス (Gin)
   recommender:
     build:
-      context: ./backend/services/recommender
+      context: ./apps/recommender-service
       dockerfile: Dockerfile
     container_name: baby_wear_recommender
     ports:
       - "8080:8080"
     volumes:
-      - ./backend/services/recommender:/app
+      - ./apps/recommender-service:/app
     environment:
       - GIN_MODE=debug

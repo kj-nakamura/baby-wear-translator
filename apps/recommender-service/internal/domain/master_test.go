@@ -53,5 +53,8 @@ func TestShopSpecificNames_RecommendedItemsAreMapped(t *testing.T) {
 		if _, ok := domain.ShopSpecificNames[uname]; !ok {
 			t.Errorf("Recommend が返す %q に対応する ShopSpecificNames エントリが存在しません", uname)
 		}
+		if _, ok := domain.ItemCategories[uname]; !ok {
+			t.Errorf("Recommend が返す %q に対応する ItemCategories エントリが存在しません", uname)
+		}
 	}
 }

@@ -7,11 +7,11 @@ servers:
   - url: http://localhost:8080
     description: Local server
 paths:
-  /recommend:
+  /milestones:
     get:
-      summary: Get recommended baby wear
-      description: Returns a list of recommended baby wear items based on the baby's age and current temperature.
-      operationId: getRecommendation
+      summary: Get baby wear milestones
+      description: Returns a list of recommended baby wear items for each month from birth to 2 years old.
+      operationId: getMilestones
       parameters:
         - name: birth_date
           in: query
@@ -21,29 +21,14 @@ paths:
             type: string
             format: date
             example: "2023-10-01"
-        - name: target_shop
-          in: query
-          description: Target shop name for specific terminology (e.g., uniqlo, nishimatsuya, akachan_honpo)
-          required: false
-          schema:
-            type: string
-            example: "uniqlo"
-        - name: target_date
-          in: query
-          description: Target date to wear the baby wear (YYYY-MM-DD), defaults to today
-          required: false
-          schema:
-            type: string
-            format: date
-            example: "2023-10-15"
       responses:
-        '200':
-          description: Successful recommendation response
+        "200":
+          description: Successful milestones response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecommendationResponse'
-        '400':
+                $ref: "#/components/schemas/MilestoneResponse"
+        "400":
           description: Invalid input parameters
 
 components:
@@ -52,34 +37,82 @@ components:
       type: object
       required:
         - universal_name
-        - shop_specific_name
+        - shop_names
+        - category_label
+        - category_emoji
+        - category_color
       properties:
         universal_name:
           type: string
           description: Universal name of the item (e.g., combi-hadagi)
           example: "コンビ肌着"
-        shop_specific_name:
+        shop_names:
+          type: array
+          description: Shop-specific names of the item
+          items:
+            $ref: "#/components/schemas/ShopNameStatus"
+        category_label:
           type: string
-          description: Shop-specific name of the item
+          description: Category label for display
+          example: "インナー"
+        category_emoji:
+          type: string
+          description: Emoji represention of the category
+          example: "👶"
+        category_color:
+          type: string
+          description: Background color for item icon
+          example: "#FFF3E0"
+
+    ShopNameStatus:
+      type: object
+      required:
+        - shop_key
+        - shop_name
+      properties:
+        shop_key:
+          type: string
+          description: Unique key for the shop
+          example: "uniqlo"
+        shop_name:
+          type: string
+          description: Name of the item at this shop
           example: "コットンフライスコンビ肌着"
-    
-    RecommendationResponse:
+
+    Milestone:
       type: object
       required:
         - age_in_months
+        - target_date
         - size
         - items
       properties:
         age_in_months:
           type: integer
-          description: Calculated age in months
-          example: 4
+          description: Age in months at this milestone
+          example: 0
+        target_date:
+          type: string
+          format: date
+          description: The date corresponding to this milestone
+          example: "2023-10-01"
         size:
           type: string
           description: Estimated clothing size in cm
-          example: "60-70cm"
+          example: "50-60cm"
         items:
           type: array
           description: List of recommended items
           items:
-            $ref: '#/components/schemas/Item'
+            $ref: "#/components/schemas/Item"
+
+    MilestoneResponse:
+      type: object
+      required:
+        - milestones
+      properties:
+        milestones:
+          type: array
+          description: List of milestones from birth to 24 months
+          items:
+            $ref: "#/components/schemas/Milestone"

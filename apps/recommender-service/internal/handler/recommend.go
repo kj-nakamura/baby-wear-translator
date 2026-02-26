@@ -2,10 +2,10 @@ package handler
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kenji/baby-wear-translator/backend/internal/domain"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // RecommendHandler は ServerInterface を実装する構造体です
@@ -15,89 +15,67 @@ func NewRecommendHandler() *RecommendHandler {
 	return &RecommendHandler{}
 }
 
-// itemResponse は JSON レスポンス用の拡張 Item 型です。
-// 自動生成の Item 型に other_shop_names を追加しています。
-type itemResponse struct {
-	UniversalName    string            `json:"universal_name"`
-	ShopSpecificName string            `json:"shop_specific_name"`
-	OtherShopNames   map[string]string `json:"other_shop_names"`
-}
-
-// recommendationResponse は JSON レスポンス用の拡張レスポンス型です。
-type recommendationResponse struct {
-	AgeInMonths int            `json:"age_in_months"`
-	Size        string         `json:"size"`
-	Items       []itemResponse `json:"items"`
-}
-
-// GetRecommendation は GET /recommend エンドポイントを処理します
-func (h *RecommendHandler) GetRecommendation(c *gin.Context, params GetRecommendationParams) {
-	// 1. 生年月日の利用
+// GetMilestones は GET /milestones エンドポイントを処理します
+func (h *RecommendHandler) GetMilestones(c *gin.Context, params GetMilestonesParams) {
 	birthDate := params.BirthDate.Time
 
-	// 2. targetDate の決定
-	targetDate := time.Now()
-	if params.TargetDate != nil {
-		targetDate = params.TargetDate.Time
-	}
+	milestones := make([]Milestone, 0, 25)
 
-	// 3. バリデーション: 生年月日は targetDate（デフォルトは今日）より前でなければならない
-	// タイムゾーンのズレを避けるため、YYYY-MM-DD 文字列として比較する
-	const dateFmt = "2006-01-02"
-	targetStr := targetDate.Format(dateFmt)
-	birthStr := birthDate.Format(dateFmt)
-	if birthStr > targetStr {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "birth_date must not be after target_date",
-		})
-		return
-	}
+	// 0ヶ月から24ヶ月までの各ポイントでコーディネートを算出
+	for m := 0; m <= 24; m++ {
+		// その月齢になる日付を計算
+		targetDate := birthDate.AddDate(0, m, 0)
 
-	// 4. 月齢と推測気温の計算
-	ageInMonths := domain.CalculateAgeInMonths(birthDate, targetDate)
-	estimatedTemp := domain.EstimateTemperature(targetDate)
+		// 推測気温の計算
+		estimatedTemp := domain.EstimateTemperature(targetDate)
 
-	// 5. 推奨アイテムの取得 (universal_name のリスト)
-	universalNames := domain.Recommend(ageInMonths, estimatedTemp)
+		// 推奨アイテムの取得 (universal_name のリスト)
+		universalNames := domain.Recommend(m, estimatedTemp)
 
-	// 6. ショップ固有の名前へのマッピング
-	selectedShop := ""
-	if params.TargetShop != nil {
-		selectedShop = string(*params.TargetShop)
-	}
-
-	items := make([]itemResponse, 0, len(universalNames))
-	for _, uname := range universalNames {
-		// 選択ショップの固有名
-		specificName := uname
-		if shopMap, ok := domain.ShopSpecificNames[uname]; ok {
-			if sName, ok := shopMap[selectedShop]; ok {
-				specificName = sName
-			}
-		}
-
-		// 選択ショップ以外の固有名を収集
-		otherShopNames := map[string]string{}
-		if shopMap, ok := domain.ShopSpecificNames[uname]; ok {
-			for shopID, name := range shopMap {
-				if shopID != selectedShop {
-					otherShopNames[shopID] = name
+		// アイテムの構築
+		items := make([]Item, 0, len(universalNames))
+		for _, uname := range universalNames {
+			// ショップごとの名前リストを構築
+			shopNames := make([]ShopNameStatus, 0)
+			if shopMap, ok := domain.ShopSpecificNames[uname]; ok {
+				for shopKey, sName := range shopMap {
+					shopNames = append(shopNames, ShopNameStatus{
+						ShopKey:  shopKey,
+						ShopName: sName,
+					})
 				}
 			}
+
+			// カテゴリー情報の取得
+			cat := domain.Category{
+				Label: "アイテム",
+				Emoji: "👕",
+				Color: "#F3F4F6",
+			}
+			if c, ok := domain.ItemCategories[uname]; ok {
+				cat = c
+			}
+
+			items = append(items, Item{
+				UniversalName: uname,
+				ShopNames:     shopNames,
+				CategoryLabel: cat.Label,
+				CategoryEmoji: cat.Emoji,
+				CategoryColor: cat.Color,
+			})
 		}
 
-		items = append(items, itemResponse{
-			UniversalName:    uname,
-			ShopSpecificName: specificName,
-			OtherShopNames:   otherShopNames,
+		milestones = append(milestones, Milestone{
+			AgeInMonths: m,
+			TargetDate:  openapi_types.Date{Time: targetDate},
+			Size:        domain.EstimateSize(m),
+			Items:       items,
 		})
 	}
 
-	// 6. レスポンスの返却
-	resp := recommendationResponse{
-		AgeInMonths: ageInMonths,
-		Size:        domain.EstimateSize(ageInMonths),
-		Items:       items,
+	// レスポンスの返却
+	resp := MilestoneResponse{
+		Milestones: milestones,
 	}
 
 	c.JSON(http.StatusOK, resp)

@@ -54,7 +54,24 @@ const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onCli
 
 const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, shopName }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const selectedMilestone = result.milestones[selectedIndex];
+
+    // 検索結果（result）が更新されたら、選択を一番左（現在月）にリセットする
+    React.useEffect(() => {
+        setSelectedIndex(0);
+    }, [result]);
+
+    // 現在日付の月次開始日を取得
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 現在の月以降のマイルストーンのみを表示対象とする
+    const displayedMilestones = result.milestones.filter(m => {
+        const d = new Date(m.target_date);
+        return d >= currentMonthStart;
+    });
+
+    const activeIndex = selectedIndex >= displayedMilestones.length ? 0 : selectedIndex;
+    const selectedMilestone = displayedMilestones[activeIndex];
 
     if (!selectedMilestone) return null;
 
@@ -65,11 +82,11 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result, sho
             {/* タイムライン (横スクロール) */}
             <div className="relative pb-4">
                 <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar scroll-smooth px-4">
-                    {result.milestones.map((m, idx) => (
+                    {displayedMilestones.map((m, idx) => (
                         <MilestoneCard
                             key={idx}
                             milestone={m}
-                            isSelected={idx === selectedIndex}
+                            isSelected={idx === activeIndex}
                             onClick={() => setSelectedIndex(idx)}
                         />
                     ))}

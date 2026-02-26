@@ -19,15 +19,8 @@ function todayString(): string {
   return formatDate(new Date());
 }
 
-// 6ヶ月前の日付を YYYY-MM-DD 形式で返す
-function sixMonthsAgoString(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - 6);
-  return formatDate(d);
-}
-
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
-  const [birthDate, setBirthDate] = useState(() => sixMonthsAgoString());
+  const [birthDate, setBirthDate] = useState('2025-10-23');
   const [targetShop, setTargetShop] = useState('nishimatsuya');
 
   const handleSubmit = (e: React.FormEvent) => {

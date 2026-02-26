@@ -156,7 +156,7 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result }) =
                     <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
                         <div
                             className="p-8 text-center relative overflow-hidden"
-                            style={{ backgroundColor: selectedItem.category_color }}
+                            style={{ backgroundColor: selectedItem.category_color || '#F3F4F6' }}
                         >
                             {/* 装飾用背景パターン */}
                             <div className="absolute inset-0 opacity-10 pointer-events-none select-none text-[100px] flex items-center justify-center">
@@ -176,16 +176,23 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result }) =
                         <div className="p-6 space-y-4">
                             <p className="text-sm font-bold text-gray-400 border-b pb-2">ショップごとの名称</p>
                             <div className="space-y-4">
-                                {selectedItem.shop_names.map((sn, idx) => (
-                                    <div key={idx} className="flex justify-between items-center group">
-                                        <div className="text-sm font-bold text-gray-500">
-                                            {SHOP_DISPLAY_NAMES[sn.shop_key] || sn.shop_key}
+                                {selectedItem.shop_names && selectedItem.shop_names.length > 0 ? (
+                                    selectedItem.shop_names.map((sn, idx) => (
+                                        <div key={idx} className="flex justify-between items-center group">
+                                            <div className="text-sm font-bold text-gray-500">
+                                                {SHOP_DISPLAY_NAMES[sn.shop_key] || sn.shop_key}
+                                            </div>
+                                            <div className="text-md font-black text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                {sn.shop_name}
+                                            </div>
                                         </div>
-                                        <div className="text-md font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-                                            {sn.shop_name}
-                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                        <p className="text-sm font-bold text-gray-400">データがありません</p>
+                                        <p className="text-[10px] text-gray-400 mt-1">サーバーを再起動して最新の情報を反映してください</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
                             <button
                                 onClick={() => setSelectedItem(null)}

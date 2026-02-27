@@ -14,6 +14,7 @@ services:
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true # Next.js ホットリロード用
+      - BACKEND_API_URL=http://recommender:8080
 
   # 服の推薦・履歴管理サービス (Gin)
   recommender:

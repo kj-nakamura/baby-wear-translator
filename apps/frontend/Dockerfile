@@ -1,17 +1,29 @@
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# 依存関係のインストール
+# Install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# その他のソースをコピー
+# Copy source and build
 COPY . .
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy necessary files from build stage
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
 
-# ホットリロードのためのポーリング設定を環境変数で可能にする
-ENV WATCHPACK_POLLING=true
-
-CMD ["npm", "run", "dev"]
+ENV NODE_ENV=production
+# Force Next.js to use the PORT provided by Cloud Run
+CMD ["sh", "-c", "npm start -- -p ${PORT:-3000}"]

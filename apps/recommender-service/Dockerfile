@@ -1,14 +1,22 @@
-FROM golang:latest
+# Build stage
+FROM golang:1.26-alpine AS build
 
 WORKDIR /app
 
-# 依存関係のキャッシュ
+# Install dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
-# ソースコードのコピー
+# Copy source and build
 COPY . .
+RUN go build -o main cmd/api/main.go
 
-# ホットリロードではなくまずは開発サーバーとしてシンプルに起動
+# Production stage
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+COPY --from=build /app/main .
+
 EXPOSE 8080
-CMD ["go", "run", "cmd/api/main.go"]
+CMD ["./main"]

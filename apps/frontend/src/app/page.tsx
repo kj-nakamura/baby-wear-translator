@@ -20,7 +20,7 @@ export default function Home() {
           <span className="text-3xl animate-bounce-slow">🍼</span>
           <div>
             <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 leading-tight">
-              Baby Wear Translator
+              赤ちゃんの衣替え
             </h1>
             <p className="text-xs font-bold text-gray-400">成長に合わせたコーディネートを提案</p>
           </div>

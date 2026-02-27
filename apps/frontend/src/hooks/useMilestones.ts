@@ -37,9 +37,16 @@ export const useMilestones = () => {
         birth_date: birthDate,
       });
 
-      const response = await fetch(`http://localhost:8080/milestones?${query.toString()}`);
+      const response = await fetch(`/api/milestones?${query.toString()}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch milestones');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[Fetch Error]', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          errorData
+        });
+        throw new Error(`Failed to fetch milestones: ${response.status} ${response.statusText}`);
       }
       const result: MilestoneResponse = await response.json();
       setData(result);

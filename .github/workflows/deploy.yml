@@ -48,6 +48,6 @@ jobs:
 
       - name: Deploy to Pulumi
         working-directory: ./infrastructure
-        run: pulumi up --yes
+        run: pulumi up --stack dev --yes
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

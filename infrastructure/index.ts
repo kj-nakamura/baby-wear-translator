@@ -25,8 +25,10 @@ const repositoryUrl = pulumi.interpolate`${region}-docker.pkg.dev/${repository.p
 // --- ここから追加部分 ---
 
 // 1. Goバックエンドのビルドとプッシュ
+const imageTag = process.env.IMAGE_TAG || "latest";
+
 const recommenderServiceImage = new docker.Image("go-recommender-service-img", {
-    imageName: pulumi.interpolate`${repositoryUrl}/go-recommender-service:latest`,
+    imageName: pulumi.interpolate`${repositoryUrl}/go-recommender-service:${imageTag}`,
     build: {
         // GoのコードとDockerfileがあるディレクトリへの相対パスを指定してください
         context: "../apps/recommender-service",
@@ -60,7 +62,7 @@ const recommenderServiceIam = new gcp.cloudrun.IamMember("recommender-service-pu
 
 // 2. TypeScriptフロントエンドのビルドとプッシュ
 const frontendImage = new docker.Image("ts-frontend-img", {
-    imageName: pulumi.interpolate`${repositoryUrl}/ts-frontend:latest`,
+    imageName: pulumi.interpolate`${repositoryUrl}/ts-frontend:${imageTag}`,
     build: {
         context: "../apps/frontend",
         platform: "linux/amd64",

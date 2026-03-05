@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../app.js';
-import { calculatorService } from '../services/calculator.service.js';
+import app from '../app';
+import { calculatorService } from '../services/calculator.service';
 
-vi.mock('../services/calculator.service.js', () => {
+vi.mock('../services/calculator.service', () => {
   return {
     calculatorService: {
       calculateWorkingHours: vi.fn(),

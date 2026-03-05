@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { calculatorService } from './calculator.service.js';
-import { holidayService } from './holiday.service.js';
+import { calculatorService } from './calculator.service';
+import { holidayService } from './holiday.service';
 
-vi.mock('./holiday.service.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./holiday.service.js')>();
+vi.mock('./holiday.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./holiday.service')>();
   // 既存のインスタンスのメソッドをモックに置き換える
   actual.holidayService.getHolidays = vi.fn();
   return actual;

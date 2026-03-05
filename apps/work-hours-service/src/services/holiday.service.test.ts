@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { holidayService } from './holiday.service.js';
+import { holidayService } from './holiday.service';
 
 // node-cache をモックして、キャッシュの影響を排除する
 vi.mock('node-cache', () => {

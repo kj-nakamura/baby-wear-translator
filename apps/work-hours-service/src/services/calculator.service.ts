@@ -1,6 +1,6 @@
 import { format, addDays, isWeekend, isWithinInterval, parseISO } from 'date-fns';
-import { holidayService } from './holiday.service.js';
-import { HolidayData } from '../types/index.js';
+import { holidayService } from './holiday.service';
+import { HolidayData } from '../types/index';
 
 export class CalculatorService {
   /**

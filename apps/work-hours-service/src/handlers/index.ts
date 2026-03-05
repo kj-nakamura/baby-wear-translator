@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { calculatorService } from '../services/calculator.service.js';
+import { calculatorService } from '../services/calculator.service';
 
 const router = Router();
 

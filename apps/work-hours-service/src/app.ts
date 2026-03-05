@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import router from './handlers/index.js';
+import router from './handlers/index';
 
 const app = express();
 

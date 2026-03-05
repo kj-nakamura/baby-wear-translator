@@ -1,6 +1,6 @@
 import axios from 'axios';
 import NodeCache from 'node-cache';
-import { HolidayData } from '../types/index.js';
+import { HolidayData } from '../types/index';
 
 // キャッシュ時間: 6時間 (21600秒)
 const cache = new NodeCache({ stdTTL: 21600 });

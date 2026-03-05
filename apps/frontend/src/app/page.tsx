@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import RecommendationForm from '@/components/RecommendationForm';
 import RecommendationResult from '@/components/RecommendationResult';
+import WorkHoursSection from '@/components/WorkHoursSection';
 import { useMilestones } from '@/hooks/useMilestones';
 
 export default function Home() {
@@ -35,6 +36,14 @@ export default function Home() {
             Setting
           </div>
           <RecommendationForm onSubmit={handleSubmit} />
+        </section>
+
+        {/* 稼働時間計算セクション */}
+        <section className="relative">
+          <div className="absolute -top-6 -left-2 text-xs font-black uppercase tracking-widest text-emerald-200 select-none">
+            Utility
+          </div>
+          <WorkHoursSection />
         </section>
 
         {/* エラー */}

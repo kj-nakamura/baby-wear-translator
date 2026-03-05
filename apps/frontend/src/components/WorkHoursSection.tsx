@@ -4,14 +4,13 @@ import React, { useState } from 'react';
 import { useWorkHours } from '@/hooks/useWorkHours';
 
 const WorkHoursSection: React.FC = () => {
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const { workHoursData, holidaysData, loading, error, fetchWorkHours } = useWorkHours();
 
   const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (start && end) {
-      fetchWorkHours(start, end);
+    if (month) {
+      fetchWorkHours(month);
     }
   };
 
@@ -24,21 +23,11 @@ const WorkHoursSection: React.FC = () => {
 
       <form onSubmit={handleCalculate} className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1 space-y-2">
-          <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">開始日</label>
+          <label className="ml-1 text-xs font-black uppercase tracking-widest text-gray-400">対象月</label>
           <input
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="w-full rounded-2xl border-2 border-gray-50 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none transition-all focus:border-blue-400 focus:bg-white"
-            required
-          />
-        </div>
-        <div className="flex-1 space-y-2">
-          <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">終了日</label>
-          <input
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
             className="w-full rounded-2xl border-2 border-gray-50 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none transition-all focus:border-blue-400 focus:bg-white"
             required
           />

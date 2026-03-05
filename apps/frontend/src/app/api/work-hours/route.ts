@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { start, end } = body;
+        const { month, start, end } = body;
 
-        if (!start || !end) {
-            return NextResponse.json({ error: 'start and end are required' }, { status: 400 });
+        if (!month && (!start || !end)) {
+            return NextResponse.json({ error: 'month or start and end are required' }, { status: 400 });
         }
 
         const backendUrl = (process.env.WORK_HOURS_API_URL || 'http://localhost:8081').replace(/\/$/, '');
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ start, end }),
+            body: JSON.stringify(month ? { month } : { start, end }),
             cache: 'no-store',
         });
 

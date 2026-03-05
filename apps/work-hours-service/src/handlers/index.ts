@@ -1,7 +1,28 @@
 import { Request, Response, Router } from 'express';
+import { endOfMonth, format, parse } from 'date-fns';
 import { calculatorService } from '../services/calculator.service';
 
 const router = Router();
+
+const resolvePeriod = (month?: string, start?: string, end?: string) => {
+  if (month) {
+    const monthDate = parse(`${month}-01`, 'yyyy-MM-dd', new Date());
+    if (Number.isNaN(monthDate.getTime())) {
+      return null;
+    }
+
+    return {
+      start: format(monthDate, 'yyyy-MM-dd'),
+      end: format(endOfMonth(monthDate), 'yyyy-MM-dd'),
+    };
+  }
+
+  if (start && end) {
+    return { start, end };
+  }
+
+  return null;
+};
 
 /**
  * POST /api/v1/work-hours
@@ -9,15 +30,15 @@ const router = Router();
  */
 router.post('/work-hours', async (req: Request, res: Response) => {
   try {
-    const { start, end } = req.body;
-    if (!start || !end) {
-      return res.status(400).json({ error: 'start and end are required (YYYY-MM-DD)' });
+    const period = resolvePeriod(req.body.month, req.body.start, req.body.end);
+    if (!period) {
+      return res.status(400).json({ error: 'month (YYYY-MM) or start and end are required (YYYY-MM-DD)' });
     }
 
-    const workHours = await calculatorService.calculateWorkingHours(start, end);
+    const workHours = await calculatorService.calculateWorkingHours(period.start, period.end);
     res.json({
       workHours,
-      period: { start, end }
+      period
     });
   } catch (error) {
     console.error('稼働時間の計算に失敗しました:', error);
@@ -31,12 +52,16 @@ router.post('/work-hours', async (req: Request, res: Response) => {
  */
 router.get('/holidays', async (req: Request, res: Response) => {
   try {
-    const { start, end } = req.query;
-    if (!start || !end) {
-      return res.status(400).json({ error: 'start and end query parameters are required (YYYY-MM-DD)' });
+    const period = resolvePeriod(
+      typeof req.query.month === 'string' ? req.query.month : undefined,
+      typeof req.query.start === 'string' ? req.query.start : undefined,
+      typeof req.query.end === 'string' ? req.query.end : undefined
+    );
+    if (!period) {
+      return res.status(400).json({ error: 'month (YYYY-MM) or start and end query parameters are required (YYYY-MM-DD)' });
     }
 
-    const holidays = await calculatorService.getHolidaysList(start as string, end as string);
+    const holidays = await calculatorService.getHolidaysList(period.start, period.end);
     res.json({ holidays });
   } catch (error) {
     console.error('祝日リストの取得に失敗しました:', error);

@@ -18,14 +18,14 @@ export const useWorkHours = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWorkHours = async (start: string, end: string) => {
+  const fetchWorkHours = async (month: string) => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/work-hours', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start, end }),
+        body: JSON.stringify({ month }),
       });
 
       if (!response.ok) {
@@ -34,7 +34,7 @@ export const useWorkHours = () => {
       const data: WorkHoursResponse = await response.json();
       setWorkHoursData(data);
 
-      const holidayResponse = await fetch(`/api/holidays?start=${start}&end=${end}`);
+      const holidayResponse = await fetch(`/api/holidays?month=${month}`);
       if (!holidayResponse.ok) {
         throw new Error(`Holidays error: ${holidayResponse.status}`);
       }

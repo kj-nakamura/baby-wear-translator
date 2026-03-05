@@ -4,15 +4,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+    const month = searchParams.get('month');
     const start = searchParams.get('start');
     const end = searchParams.get('end');
 
-    if (!start || !end) {
-        return NextResponse.json({ error: 'start and end are required' }, { status: 400 });
+    if (!month && (!start || !end)) {
+        return NextResponse.json({ error: 'month or start and end are required' }, { status: 400 });
     }
 
     const backendUrl = (process.env.WORK_HOURS_API_URL || 'http://localhost:8081').replace(/\/$/, '');
-    const targetUrl = `${backendUrl}/api/v1/holidays?start=${start}&end=${end}`;
+    const targetUrl = month
+        ? `${backendUrl}/api/v1/holidays?month=${encodeURIComponent(month)}`
+        : `${backendUrl}/api/v1/holidays?start=${start}&end=${end}`;
 
     try {
         const response = await fetch(targetUrl, {

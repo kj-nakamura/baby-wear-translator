@@ -57,3 +57,31 @@ jobs:
 
       - name: Build test
         run: npm run build
+
+  work-ui-test:
+    name: Work UI Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "apps/frontend/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint work UI files
+        run: npx eslint src/app/work src/components/WorkHoursSection.tsx src/hooks/useWorkHours.ts
+
+      - name: Type check work UI
+        run: npx tsc --noEmit
+
+      - name: Build test
+        run: npm run build

@@ -1,93 +1,68 @@
 'use client';
 
-import React, { useState } from 'react';
-import RecommendationForm from '@/components/RecommendationForm';
-import RecommendationResult from '@/components/RecommendationResult';
-import { useMilestones } from '@/hooks/useMilestones';
+import Link from 'next/link';
+
+const destinations = [
+  {
+    href: '/baby',
+    emoji: '🍼',
+    eyebrow: 'Baby',
+    title: '赤ちゃんの衣替え',
+    description: '生年月日から成長マイルストーンとベビー服の目安を確認します。',
+    accent: 'from-sky-500 to-indigo-500',
+  },
+  {
+    href: '/work',
+    emoji: '📅',
+    eyebrow: 'Work',
+    title: '稼働時間計算',
+    description: '祝日と有給日を考慮して、その月の稼働時間を計算します。',
+    accent: 'from-emerald-500 to-teal-500',
+  },
+];
 
 export default function Home() {
-  const { data, loading, error, fetchMilestones } = useMilestones();
-
-  const handleSubmit = (birthDate: string) => {
-    fetchMilestones(birthDate);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-sky-50">
-      {/* ページヘッダー */}
-      <header className="w-full border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
-          <span className="text-3xl animate-bounce-slow">🍼</span>
-          <div>
-            <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 leading-tight">
-              赤ちゃんの衣替え
-            </h1>
-            <p className="text-xs font-bold text-gray-400">成長に合わせたコーディネートを提案</p>
-          </div>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#eef6ff,transparent_45%),linear-gradient(180deg,#f8fbff_0%,#ffffff_55%,#f5fbf8_100%)] px-4 py-10 text-gray-900">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col justify-center">
+        <div className="max-w-2xl">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Baby Wear Translator</p>
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+            機能ごとに
+            <br />
+            入口を分けました。
+          </h1>
+          <p className="mt-4 text-sm font-medium leading-7 text-slate-500 sm:text-base">
+            ベビー服の確認は <span className="font-black text-slate-700">/baby</span>、稼働時間の計算は
+            <span className="font-black text-slate-700"> /work</span> から使えます。
+          </p>
         </div>
-      </header>
 
-      {/* メインコンテンツ */}
-      <main className="mx-auto max-w-2xl px-4 py-8 space-y-12">
-        {/* 入力フォームセクション */}
-        <section className="relative">
-          <div className="absolute -top-6 -left-2 text-xs font-black uppercase tracking-widest text-blue-200 select-none">
-            Setting
-          </div>
-          <RecommendationForm onSubmit={handleSubmit} />
-        </section>
-
-        {/* エラー */}
-        {error && !loading && (
-          <div className="flex items-start gap-4 rounded-3xl border border-red-100 bg-red-50/50 p-6 text-red-700 backdrop-blur-sm">
-            <span className="mt-0.5 text-2xl">🚨</span>
-            <div>
-              <p className="font-black">通信エラー</p>
-              <p className="mt-1 text-sm font-medium opacity-80">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-4 text-xs font-bold underline decoration-2 underline-offset-4"
-              >
-                再読み込みしてリトライ
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 結果表示 */}
-        {data && (
-          <section className="relative transition-all duration-500">
-            <div className="absolute -top-6 -left-2 text-xs font-black uppercase tracking-widest text-indigo-200 select-none">
-              Milestones
-            </div>
-            <div className={loading ? 'opacity-40 grayscale-[0.5] pointer-events-none blur-[1px] transition-all duration-300' : 'transition-all duration-300'}>
-              <RecommendationResult result={data} />
-            </div>
-
-            {loading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-20">
-                <div className="relative">
-                  <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500/20 border-t-blue-600" />
-                  <div className="absolute inset-0 flex items-center justify-center text-xl">👶</div>
-                </div>
-                <p className="text-sm font-black text-blue-600 animate-pulse bg-white/80 px-4 py-1 rounded-full shadow-sm backdrop-blur-sm">
-                  マイルストーンを更新中…
-                </p>
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
+          {destinations.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group rounded-[2rem] border border-white/80 bg-white/80 p-7 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_25px_70px_-30px_rgba(15,23,42,0.45)]"
+            >
+              <div className={`inline-flex rounded-full bg-gradient-to-r ${item.accent} px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white`}>
+                {item.eyebrow}
               </div>
-            )}
-          </section>
-        )}
-      </main>
-
-      {/* フッター */}
-      <footer className="mt-20 border-t border-gray-100 py-10 text-center">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 mb-2">
-          Baby Wear Translator
-        </p>
-        <p className="text-xs font-bold text-gray-400">
-          娘の毎日を、もっと快適に 👶
-        </p>
-      </footer>
-    </div>
+              <div className="mt-6 flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">{item.title}</h2>
+                  <p className="mt-3 text-sm font-medium leading-6 text-slate-500">{item.description}</p>
+                </div>
+                <span className="text-4xl transition duration-300 group-hover:scale-110">{item.emoji}</span>
+              </div>
+              <p className="mt-8 text-sm font-black text-slate-700">
+                開く
+                <span className="ml-2 inline-block transition duration-300 group-hover:translate-x-1">→</span>
+              </p>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }

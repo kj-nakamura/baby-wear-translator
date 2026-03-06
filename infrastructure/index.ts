@@ -60,6 +60,33 @@ const recommenderServiceIam = new gcp.cloudrun.IamMember("recommender-service-pu
     member: "allUsers",
 });
 
+const workHoursServiceImage = new docker.Image("node-work-hours-service-img", {
+    imageName: pulumi.interpolate`${repositoryUrl}/node-work-hours-service:${imageTag}`,
+    build: {
+        context: "../apps/work-hours-service",
+        platform: "linux/amd64",
+    },
+});
+
+const workHoursService = new gcp.cloudrun.Service("baby-wear-work-hours", {
+    location: region,
+    template: {
+        spec: {
+            containers: [{
+                image: workHoursServiceImage.imageName,
+                ports: [{ containerPort: 8081 }],
+            }],
+        },
+    },
+});
+
+const workHoursServiceIam = new gcp.cloudrun.IamMember("work-hours-service-public-access", {
+    service: workHoursService.name,
+    location: region,
+    role: "roles/run.invoker",
+    member: "allUsers",
+});
+
 // 2. TypeScriptフロントエンドのビルドとプッシュ
 const frontendImage = new docker.Image("ts-frontend-img", {
     imageName: pulumi.interpolate`${repositoryUrl}/ts-frontend:${imageTag}`,
@@ -82,6 +109,10 @@ const frontendService = new gcp.cloudrun.Service("baby-wear-frontend", {
                         name: "BACKEND_API_URL", 
                         value: recommenderService.statuses.apply(s => s[0].url) 
                     },
+                    {
+                        name: "WORK_HOURS_API_URL",
+                        value: workHoursService.statuses.apply(s => s[0].url)
+                    },
                 ],
             }],
         },
@@ -100,4 +131,5 @@ const frontendIam = new gcp.cloudrun.IamMember("frontend-public-access", {
 export const bucketName = bucket.url;
 export const repoUrl = repositoryUrl;
 export const recommenderServiceUrl = recommenderService.statuses.apply(s => s[0].url);
+export const workHoursServiceUrl = workHoursService.statuses.apply(s => s[0].url);
 export const frontendUrl = frontendService.statuses.apply(s => s[0].url);

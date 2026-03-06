@@ -1,6 +1,17 @@
+import { existsSync } from 'node:fs';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+const resolveWorkHoursBackendUrl = () => {
+    if (process.env.WORK_HOURS_API_URL) {
+        return process.env.WORK_HOURS_API_URL.replace(/\/$/, '');
+    }
+
+    return existsSync('/.dockerenv')
+        ? 'http://work-hours:8081'
+        : 'http://localhost:8081';
+};
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -12,7 +23,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'month or start and end are required' }, { status: 400 });
     }
 
-    const backendUrl = (process.env.WORK_HOURS_API_URL || 'http://localhost:8081').replace(/\/$/, '');
+    const backendUrl = resolveWorkHoursBackendUrl();
     const targetUrl = month
         ? `${backendUrl}/api/v1/holidays?month=${encodeURIComponent(month)}`
         : `${backendUrl}/api/v1/holidays?start=${start}&end=${end}`;

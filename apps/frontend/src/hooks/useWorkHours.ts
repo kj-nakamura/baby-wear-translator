@@ -29,14 +29,18 @@ export const useWorkHours = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Work hours error: ${response.status}`);
+        const errorBody = await response.json().catch(() => null) as { error?: string; details?: string } | null;
+        const message = errorBody?.details || errorBody?.error || `Work hours error: ${response.status}`;
+        throw new Error(message);
       }
       const data: WorkHoursResponse = await response.json();
       setWorkHoursData(data);
 
       const holidayResponse = await fetch(`/api/holidays?month=${month}`);
       if (!holidayResponse.ok) {
-        throw new Error(`Holidays error: ${holidayResponse.status}`);
+        const errorBody = await holidayResponse.json().catch(() => null) as { error?: string; details?: string } | null;
+        const message = errorBody?.details || errorBody?.error || `Holidays error: ${holidayResponse.status}`;
+        throw new Error(message);
       }
       const hData: HolidaysResponse = await holidayResponse.json();
       setHolidaysData(hData);

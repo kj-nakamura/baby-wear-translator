@@ -26,8 +26,8 @@ func TestSetupRouter_CORS(t *testing.T) {
 		}
 
 		allowOrigin := w.Header().Get("Access-Control-Allow-Origin")
-		if allowOrigin != "http://localhost:3000" {
-			t.Errorf("expected Access-Control-Allow-Origin: http://localhost:3000, got %s", allowOrigin)
+		if allowOrigin != "*" {
+			t.Errorf("expected Access-Control-Allow-Origin: *, got %s", allowOrigin)
 		}
 	})
 

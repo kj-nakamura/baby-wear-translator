@@ -6,6 +6,7 @@ export interface WorkHoursRequest {
   month?: string; // "2026-03"
   start?: string; // ISO 8601, e.g., "2026-03-01"
   end?: string;
+  paidLeaveDates?: string[]; // e.g., ["2026-03-10", "2026-03-24"]
 }
 
 export interface WorkHoursResponse {

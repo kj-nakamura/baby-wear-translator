@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { endOfMonth, format, parse } from 'date-fns';
+import { endOfMonth, format, parse, isMatch } from 'date-fns';
 import { calculatorService } from '../services/calculator.service';
 
 const router = Router();
@@ -24,6 +24,30 @@ const resolvePeriod = (month?: string, start?: string, end?: string) => {
   return null;
 };
 
+const normalizePaidLeaveDates = (value: unknown): string[] | null => {
+  if (value == null) {
+    return [];
+  }
+
+  const rawValues = Array.isArray(value) ? value : [value];
+  const dates = rawValues.flatMap((entry) => {
+    if (typeof entry !== 'string') {
+      return [];
+    }
+
+    return entry
+      .split(',')
+      .map((date) => date.trim())
+      .filter(Boolean);
+  });
+
+  if (dates.some((date) => !isMatch(date, 'yyyy-MM-dd'))) {
+    return null;
+  }
+
+  return [...new Set(dates)];
+};
+
 /**
  * POST /api/v1/work-hours
  * 指定期間の稼働時間を計算します。
@@ -35,7 +59,12 @@ router.post('/work-hours', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'month (YYYY-MM) or start and end are required (YYYY-MM-DD)' });
     }
 
-    const workHours = await calculatorService.calculateWorkingHours(period.start, period.end);
+    const paidLeaveDates = normalizePaidLeaveDates(req.body.paidLeaveDates);
+    if (!paidLeaveDates) {
+      return res.status(400).json({ error: 'paidLeaveDates must be an array of YYYY-MM-DD strings' });
+    }
+
+    const workHours = await calculatorService.calculateWorkingHours(period.start, period.end, paidLeaveDates);
     res.json({
       workHours,
       period
@@ -61,7 +90,12 @@ router.get('/holidays', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'month (YYYY-MM) or start and end query parameters are required (YYYY-MM-DD)' });
     }
 
-    const holidays = await calculatorService.getHolidaysList(period.start, period.end);
+    const paidLeaveDates = normalizePaidLeaveDates(req.query.paidLeaveDates);
+    if (!paidLeaveDates) {
+      return res.status(400).json({ error: 'paidLeaveDates must be YYYY-MM-DD strings' });
+    }
+
+    const holidays = await calculatorService.getHolidaysList(period.start, period.end, paidLeaveDates);
     res.json({ holidays });
   } catch (error) {
     console.error('祝日リストの取得に失敗しました:', error);

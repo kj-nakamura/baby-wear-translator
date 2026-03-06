@@ -89,14 +89,14 @@ const WorkHoursSection: React.FC = () => {
   };
 
   return (
-    <div className="rounded-3xl border border-gray-100 bg-white/60 p-8 shadow-sm backdrop-blur-md transition-all hover:shadow-md">
+    <div className="rounded-[2rem] border border-gray-100 bg-white/60 p-4 shadow-sm backdrop-blur-md transition-all hover:shadow-md sm:p-8">
       <div className="mb-6 flex items-center gap-3">
         <span className="text-2xl">📅</span>
-        <h2 className="text-lg font-black text-gray-800">稼働時間計算 (Work Hours)</h2>
+        <h2 className="text-base font-black text-gray-800 sm:text-lg">稼働時間計算 (Work Hours)</h2>
       </div>
 
-      <form onSubmit={handleCalculate} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto] lg:items-end">
-        <div className="flex-1 space-y-2">
+      <form onSubmit={handleCalculate} className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end lg:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto]">
+        <div className="space-y-2 sm:col-span-2 lg:col-span-1">
           <label className="ml-1 text-xs font-black uppercase tracking-widest text-gray-400">対象月</label>
           <input
             type="month"
@@ -110,13 +110,13 @@ const WorkHoursSection: React.FC = () => {
             required
           />
         </div>
-        {/* <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-3 text-xs font-bold leading-5 text-slate-500">
-          計算後にカレンダーが表示されます。平日をクリックすると有給に切り替わります。
-        </div> */}
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-3 text-xs font-bold leading-5 text-slate-500 sm:col-span-2 lg:col-span-1">
+          計算後にカレンダーが表示されます。平日タップで `勤務 → 有給 → 半休` に切り替わります。
+        </div>
         <button
           type="submit"
           disabled={loading}
-          className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale lg:self-stretch"
+          className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale sm:w-auto lg:self-stretch"
         >
           {loading ? '計算中...' : '計算する'}
         </button>
@@ -129,11 +129,11 @@ const WorkHoursSection: React.FC = () => {
       )}
 
       {showCalendar && workHoursData && (
-        <div className="mt-8 rounded-[2rem] border border-slate-100 bg-white/80 p-6 shadow-sm">
-          <div className="mb-5 flex items-end justify-between gap-4">
+        <div className="mt-8 rounded-[2rem] border border-slate-100 bg-white/80 p-4 shadow-sm sm:p-6">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">Calendar</p>
-              <h3 className="mt-2 text-2xl font-black text-slate-900">{month.replace('-', '年')}月のカレンダー</h3>
+              <h3 className="mt-2 text-xl font-black text-slate-900 sm:text-2xl">{month.replace('-', '年')}月のカレンダー</h3>
             </div>
             <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-wider">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-500">通常勤務</span>
@@ -143,52 +143,52 @@ const WorkHoursSection: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
-            {WEEK_LABELS.map((label) => (
-              <div key={label} className="px-2 pb-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                {label}
-              </div>
-            ))}
-            {calendarDays.map((date, index) => {
-              if (!date) {
-                return <div key={`empty-${index}`} className="aspect-square rounded-2xl bg-transparent" />;
-              }
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              {WEEK_LABELS.map((label) => (
+                <div key={label} className="px-1 pb-1 text-center text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:px-2 sm:pb-2 sm:text-[10px] sm:tracking-[0.2em]">
+                  {label}
+                </div>
+              ))}
+              {calendarDays.map((date, index) => {
+                if (!date) {
+                  return <div key={`empty-${index}`} className="h-14 rounded-[1.1rem] bg-transparent sm:h-18 sm:rounded-2xl" />;
+                }
 
-              const dateKey = formatDate(date);
-              const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-              const isHoliday = excludedDates.has(dateKey);
-              const leaveStatus = leaveStatuses[dateKey] ?? 'working';
-              const stateClass = leaveStatus === 'paid'
-                ? 'border-amber-200 bg-amber-100 text-amber-700'
-                : leaveStatus === 'half'
-                  ? 'border-orange-200 bg-orange-100 text-orange-700'
-                : isWeekend || isHoliday
-                  ? 'border-rose-100 bg-rose-50 text-rose-500'
-                  : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-amber-200 hover:bg-amber-50';
+                const dateKey = formatDate(date);
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isHoliday = excludedDates.has(dateKey);
+                const leaveStatus = leaveStatuses[dateKey] ?? 'working';
+                const stateClass = leaveStatus === 'paid'
+                  ? 'border-amber-200 bg-amber-100 text-amber-700'
+                  : leaveStatus === 'half'
+                    ? 'border-orange-200 bg-orange-100 text-orange-700'
+                    : isWeekend || isHoliday
+                      ? 'border-rose-100 bg-rose-50 text-rose-500'
+                      : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-amber-200 hover:bg-amber-50';
 
-              return (
-                <button
-                  key={dateKey}
-                  type="button"
-                  onClick={() => togglePaidLeave(date)}
-                  disabled={isWeekend || isHoliday}
-                  className={`aspect-square rounded-2xl border p-2 text-left transition ${stateClass} ${isWeekend || isHoliday ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'}`}
-                >
-                  <div className="flex h-full flex-col justify-between">
-                    <span className="text-xs font-black">{date.getDate()}</span>
-                    <span className="text-[10px] font-bold opacity-80">
-                      {leaveStatus === 'paid' ? '有給' : leaveStatus === 'half' ? '半休' : isWeekend || isHoliday ? '休日' : '勤務'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={dateKey}
+                    type="button"
+                    onClick={() => togglePaidLeave(date)}
+                    disabled={isWeekend || isHoliday}
+                    className={`h-14 w-full min-w-0 rounded-[1.1rem] border px-1 py-1 text-center transition sm:h-18 sm:rounded-2xl sm:p-2 ${stateClass} ${isWeekend || isHoliday ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'}`}
+                  >
+                    <div className="flex h-full min-w-0 flex-col items-center justify-center overflow-hidden">
+                      <span className="truncate text-[11px] font-black leading-none sm:text-xs">{date.getDate()}</span>
+                      <span className="mt-1 block truncate text-center text-[8px] leading-tight font-bold opacity-80 sm:text-[10px]">
+                        {leaveStatus === 'paid' ? '有給' : leaveStatus === 'half' ? '半休' : isWeekend || isHoliday ? '休日' : '勤務'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
           </div>
         </div>
       )}
 
       {workHoursData && (
-        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-emerald-50 bg-emerald-50/40 p-5">
             <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">Adjusted Work Hours</p>
             <p className="text-3xl font-black text-emerald-600">

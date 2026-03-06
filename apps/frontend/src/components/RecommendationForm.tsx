@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface RecommendationFormProps {
   onSubmit: (birthDate: string) => void;
 }
+
+const BIRTH_DATE_STORAGE_KEY = 'baby-wear-translator.birth-date';
+const DEFAULT_BIRTH_DATE = '2025-10-23';
 
 // 日付を YYYY-MM-DD 形式で返す
 function formatDate(d: Date): string {
@@ -19,8 +22,20 @@ function todayString(): string {
   return formatDate(new Date());
 }
 
+function getInitialBirthDate(): string {
+  if (typeof window === 'undefined') {
+    return DEFAULT_BIRTH_DATE;
+  }
+
+  return window.localStorage.getItem(BIRTH_DATE_STORAGE_KEY) ?? DEFAULT_BIRTH_DATE;
+}
+
 const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
-  const [birthDate, setBirthDate] = useState('2025-10-23');
+  const [birthDate, setBirthDate] = useState(getInitialBirthDate);
+
+  useEffect(() => {
+    window.localStorage.setItem(BIRTH_DATE_STORAGE_KEY, birthDate);
+  }, [birthDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +56,11 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
           onChange={(e) => setBirthDate(e.target.value)}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-400">誕生日から2歳までのマイルストーンを表示します</p>
+        <p className="mt-1 text-xs text-gray-400">誕生日から2歳までの成長計画を表示します</p>
+        <div className="mt-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          <span className="font-semibold">現在設定されている誕生日:</span>{' '}
+          <span className="font-mono">{birthDate}</span>
+        </div>
       </div>
 
       <button
@@ -49,7 +68,7 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
         type="submit"
         className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200"
       >
-        マイルストーンを表示する
+        成長計画を表示する
       </button>
     </form>
   );

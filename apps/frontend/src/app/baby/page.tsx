@@ -59,7 +59,7 @@ export default function BabyPage() {
         {data && (
           <section className="relative transition-all duration-500">
             <div className="absolute -top-6 -left-2 select-none text-xs font-black uppercase tracking-widest text-indigo-200">
-              Milestones
+              Growth Plan
             </div>
             <div className={loading ? 'pointer-events-none blur-[1px] grayscale-[0.5] opacity-40 transition-all duration-300' : 'transition-all duration-300'}>
               <RecommendationResult result={data} />
@@ -72,7 +72,7 @@ export default function BabyPage() {
                   <div className="absolute inset-0 flex items-center justify-center text-xl">👶</div>
                 </div>
                 <p className="animate-pulse rounded-full bg-white/80 px-4 py-1 text-sm font-black text-blue-600 shadow-sm backdrop-blur-sm">
-                  マイルストーンを更新中…
+                  成長計画を更新中…
                 </p>
               </div>
             )}

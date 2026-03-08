@@ -15,6 +15,11 @@ const formatDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatMonthDay = (dateKey: string) => {
+  const [, month, day] = dateKey.split('-');
+  return `${month}/${day}`;
+};
+
 const buildCalendarDays = (month: string) => {
   const [year, monthIndex] = month.split('-').map(Number);
   const firstDay = new Date(year, monthIndex - 1, 1);
@@ -56,6 +61,23 @@ const WorkHoursSection: React.FC = () => {
   const paidLeaveCount = Object.values(leaveStatuses).filter((status) => status === 'paid').length;
   const halfLeaveCount = Object.values(leaveStatuses).filter((status) => status === 'half').length;
   const adjustedWorkHours = workHoursData ? Math.max(0, workHoursData.workHours - paidLeaveHours) : 0;
+  const excludedDisplayDays = useMemo(() => {
+    const holidayItems = (holidaysData?.holidays ?? []).map((holiday) => ({
+      key: `holiday-${holiday}`,
+      label: holiday,
+      type: 'holiday' as const,
+    }));
+    const leaveItems = Object.entries(leaveStatuses)
+      .filter(([, status]) => status === 'paid' || status === 'half')
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([dateKey, status]) => ({
+        key: `leave-${dateKey}`,
+        label: formatMonthDay(dateKey),
+        type: status,
+      }));
+
+    return [...holidayItems, ...leaveItems];
+  }, [holidaysData, leaveStatuses]);
 
   const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +133,7 @@ const WorkHoursSection: React.FC = () => {
           />
         </div>
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-3 text-xs font-bold leading-5 text-slate-500 sm:col-span-2 lg:col-span-1">
-          計算後にカレンダーが表示されます。平日タップで `勤務 → 有給 → 半休` に切り替わります。
+          計算後にカレンダーが表示されます。月140時間が必須です。平日タップで `勤務 → 有給 → 半休` に切り替わります。
         </div>
         <button
           type="submit"
@@ -197,6 +219,9 @@ const WorkHoursSection: React.FC = () => {
             <p className="mt-1 text-[10px] font-bold text-emerald-500 opacity-80">
               {workHoursData.workHours} - {paidLeaveHours} = {adjustedWorkHours}
             </p>
+            <p className="mt-2 text-[10px] font-bold text-emerald-600">
+              必須ライン: 140時間
+            </p>
           </div>
 
           <div className="rounded-2xl border border-blue-50 bg-blue-50/30 p-5">
@@ -221,11 +246,12 @@ const WorkHoursSection: React.FC = () => {
 
           <div className="rounded-2xl border border-indigo-50 bg-indigo-50/30 p-5">
             <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-indigo-400">Excluded Holidays</p>
-            {holidaysData && holidaysData.holidays.length > 0 ? (
+            {excludedDisplayDays.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {holidaysData.holidays.map((h, i) => (
-                  <span key={i} className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-500 shadow-sm">
-                    {h}
+                {excludedDisplayDays.map((item) => (
+                  <span key={item.key} className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-500 shadow-sm">
+                    {item.label}
+                    {item.type === 'paid' ? ' 有給' : item.type === 'half' ? ' 半休' : ''}
                   </span>
                 ))}
               </div>

@@ -1,9 +1,21 @@
-'use client';
-
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
 import WorkHoursSection from '@/components/WorkHoursSection';
+import GoogleAuthButtons from '@/components/GoogleAuthButtons';
+import { authOptions } from '@/auth';
 
-export default function WorkPage() {
+type WorkPageProps = {
+  searchParams?: Promise<{
+    callbackUrl?: string;
+  }>;
+};
+
+// Workページの表示内容をセッション状態に応じて切り替えます。
+export default async function WorkPage({ searchParams }: WorkPageProps) {
+  const session = await getServerSession(authOptions);
+  const params = await searchParams;
+  const callbackUrl = params?.callbackUrl ?? '/work';
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f3fbf7_0%,#f8fffc_35%,#ffffff_100%)]">
       <header className="sticky top-0 z-10 w-full border-b border-emerald-100 bg-white/85 backdrop-blur-md">
@@ -20,6 +32,12 @@ export default function WorkPage() {
           <nav className="flex items-center gap-3 self-end text-[11px] font-black uppercase tracking-[0.16em] text-gray-400 sm:self-auto sm:text-xs sm:tracking-[0.2em]">
             <Link href="/" className="transition hover:text-gray-700">Home</Link>
             <Link href="/baby" className="transition hover:text-emerald-600">Baby</Link>
+            <GoogleAuthButtons
+              callbackUrl={callbackUrl}
+              imageUrl={session?.user?.image}
+              isAuthenticated={!!session?.user}
+              name={session?.user?.name}
+            />
           </nav>
         </div>
       </header>
@@ -29,7 +47,7 @@ export default function WorkPage() {
           <div className="absolute -top-4 left-0 select-none text-[10px] font-black uppercase tracking-[0.3em] text-emerald-200 sm:-top-6 sm:-left-2 sm:text-xs sm:tracking-widest">
             Work
           </div>
-          <WorkHoursSection />
+          <WorkHoursSection isGoogleConnected={!!session?.user} />
         </section>
       </main>
     </div>

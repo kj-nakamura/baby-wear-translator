@@ -4,6 +4,9 @@ import * as docker from "@pulumi/docker";
 
 const config = new pulumi.Config();
 const region = gcp.config.region || "asia-northeast1";
+const authSecret = config.requireSecret("authSecret");
+const authGoogleId = config.requireSecret("authGoogleId");
+const authGoogleSecret = config.requireSecret("authGoogleSecret");
 
 // Create a GCP resource (Storage Bucket)
 const bucket = new gcp.storage.Bucket("assets-bucket", {
@@ -112,6 +115,18 @@ const frontendService = new gcp.cloudrun.Service("baby-wear-frontend", {
                     {
                         name: "WORK_HOURS_API_URL",
                         value: workHoursService.statuses.apply(s => s[0].url)
+                    },
+                    {
+                        name: "AUTH_SECRET",
+                        value: authSecret,
+                    },
+                    {
+                        name: "AUTH_GOOGLE_ID",
+                        value: authGoogleId,
+                    },
+                    {
+                        name: "AUTH_GOOGLE_SECRET",
+                        value: authGoogleSecret,
                     },
                 ],
             }],

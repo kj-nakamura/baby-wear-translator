@@ -1,2 +1,8 @@
 config:
   gcp:project: baby-wear-translator
+  baby-wear-translator:authSecret:
+    secure: AAABAKWqs/G53O9BBIN1zjQ15+Lhe4J0R/p8VUc9iQKWN8ZJFzW0eKEZT2uxGAJ4DRKUnIPKByPGEE3gmgRBK24oKIfZ661iVXNs+g==
+  baby-wear-translator:authGoogleId:
+    secure: AAABADjdmM9zKnhph7aWfxHe3Z1Jw4cDfrGLbS9gn6A1ey02oXF8h0NvVdEPqROAyYzElOgY9kjqa4edujNtRulQ6Yac+AD/YBIGkvB9Bj3NSomf/R1ZaLD9SxRF0iZybGeiQ0UK+7A=
+  baby-wear-translator:authGoogleSecret:
+    secure: AAABADpgVj65u7Atp7hm197AtR9rwTx6LipaD/TsH/QFG+Z25UhzolcG8ZYuzap6BlLhudkJhXOqD6yh7CY3S74wOw==

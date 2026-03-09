@@ -4,241 +4,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CalendarDayDetailModal from '@/components/CalendarDayDetailModal';
 import CalendarSelectorModal from '@/components/CalendarSelectorModal';
 import { useWorkHours } from '@/hooks/useWorkHours';
+import type { CalendarEvent, CalendarOption, LeaveStatus, SelectedDateDetail } from '@/components/work/types';
+import { buildCalendarDays, buildMultiDayEventBars, formatDate, formatEventTime, formatFullDate, formatMonthDay, getCurrentMonthValue, getEventDateKeys } from '@/components/work/utils';
+import WorkCalendarView from '@/components/work/WorkCalendarView';
+import WorkHoursSummary from '@/components/work/WorkHoursSummary';
 
 const HOURS_PER_DAY = 8;
 const HALF_DAY_HOURS = 4;
-const WEEK_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 const SELECTED_CALENDAR_IDS_STORAGE_KEY = 'work-hours:selected-calendar-ids';
-const JST_TIME_ZONE = 'Asia/Tokyo';
-type LeaveStatus = 'working' | 'paid' | 'half';
-type CalendarEvent = {
-  allDay: boolean;
-  calendarColor?: string;
-  calendarId?: string;
-  calendarName?: string;
-  end: string;
-  id: string;
-  start: string;
-  title: string;
-};
-type CalendarOption = {
-  accessRole: string;
-  color: string;
-  id: string;
-  isPrimary: boolean;
-  name: string;
-};
-type SelectedDateDetail = {
-  date: Date;
-  dateKey: string;
-};
-type MultiDayEventBar = {
-  calendarColor?: string;
-  calendarId?: string;
-  event: CalendarEvent;
-  row: number;
-  span: number;
-  startColumn: number;
-  weekIndex: number;
-};
-
-const formatDate = (date: Date) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const parseDateKey = (value: string) => {
-  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
-
-const formatMonthDay = (dateKey: string) => {
-  const [, month, day] = dateKey.split('-');
-  return `${month}/${day}`;
-};
-
-const formatFullDate = (date: Date) => {
-  const weekDay = WEEK_LABELS[date.getDay()];
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekDay})`;
-};
-
-const formatEventTime = (event: CalendarEvent) => {
-  if (event.allDay) {
-    return '終日';
-  }
-
-  const start = event.start ? new Date(event.start) : null;
-  const end = event.end ? new Date(event.end) : null;
-  if (!start || Number.isNaN(start.getTime())) {
-    return '時刻未設定';
-  }
-
-  const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: JST_TIME_ZONE,
-  });
-  const startText = timeFormatter.format(start);
-  if (!end || Number.isNaN(end.getTime())) {
-    return startText;
-  }
-
-  const endText = timeFormatter.format(end);
-  return `${startText} - ${endText}`;
-};
-
-const buildCalendarDays = (month: string) => {
-  const [year, monthIndex] = month.split('-').map(Number);
-  const firstDay = new Date(year, monthIndex - 1, 1);
-  const lastDay = new Date(year, monthIndex, 0);
-  const daysInMonth = lastDay.getDate();
-  const leadingEmptyDays = firstDay.getDay();
-  const days: Array<Date | null> = Array.from({ length: leadingEmptyDays }, () => null);
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    days.push(new Date(year, monthIndex - 1, day));
-  }
-
-  while (days.length % 7 !== 0) {
-    days.push(null);
-  }
-
-  return days;
-};
-
-const getCurrentMonthValue = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, '0');
-  return `${year}-${month}`;
-};
-
-const shiftMonthValue = (value: string, diff: number) => {
-  const [year, month] = value.split('-').map(Number);
-  const date = new Date(year, month - 1 + diff, 1);
-  return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`;
-};
-
-const getEventDateKeys = (event: CalendarEvent, visibleMonth: string) => {
-  const startKey = event.start.slice(0, 10);
-  if (!startKey) {
-    return [];
-  }
-
-  const startDate = parseDateKey(startKey);
-  const monthStart = parseDateKey(`${visibleMonth}-01`);
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-
-  if (!event.end) {
-    return [startKey];
-  }
-
-  const endBaseKey = event.end.slice(0, 10);
-  if (!endBaseKey) {
-    return [startKey];
-  }
-
-  const endDate = parseDateKey(endBaseKey);
-  if (event.allDay) {
-    endDate.setDate(endDate.getDate() - 1);
-  } else if (event.end.includes('T')) {
-    const rawEnd = new Date(event.end);
-    if (rawEnd.getHours() === 0 && rawEnd.getMinutes() === 0 && rawEnd.getSeconds() === 0 && rawEnd.getMilliseconds() === 0) {
-      endDate.setDate(endDate.getDate() - 1);
-    }
-  }
-
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return [startKey];
-  }
-
-  const rangeStart = startDate > monthStart ? startDate : monthStart;
-  const rangeEnd = endDate < monthEnd ? endDate : monthEnd;
-  if (rangeStart > rangeEnd) {
-    return [];
-  }
-
-  const dateKeys: string[] = [];
-  const cursor = new Date(rangeStart);
-  while (cursor <= rangeEnd) {
-    dateKeys.push(formatDate(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return dateKeys;
-};
-
-const isMultiDayEvent = (event: CalendarEvent, visibleMonth: string) => getEventDateKeys(event, visibleMonth).length > 1;
-
-const buildMultiDayEventBars = (days: Array<Date | null>, eventsByDate: Record<string, CalendarEvent[]>, visibleMonth: string) => {
-  const uniqueEvents = new Map<string, CalendarEvent>();
-
-  Object.values(eventsByDate).flat().forEach((event) => {
-    if (!isMultiDayEvent(event, visibleMonth)) {
-      return;
-    }
-
-    const eventKey = `${event.calendarId ?? 'calendar'}-${event.id}`;
-    if (!uniqueEvents.has(eventKey)) {
-      uniqueEvents.set(eventKey, event);
-    }
-  });
-
-  const occupiedRowsByWeek = new Map<number, Array<{ endColumn: number; row: number }>>();
-  const bars: MultiDayEventBar[] = [];
-
-  uniqueEvents.forEach((event) => {
-    const dateKeys = getEventDateKeys(event, visibleMonth);
-    const indexes = dateKeys
-      .map((dateKey) => days.findIndex((day) => day && formatDate(day) === dateKey))
-      .filter((index) => index >= 0);
-
-    if (indexes.length <= 1) {
-      return;
-    }
-
-    let segmentStart = 0;
-    while (segmentStart < indexes.length) {
-      const startIndex = indexes[segmentStart];
-      const weekIndex = Math.floor(startIndex / 7);
-      let segmentEnd = segmentStart;
-
-      while (segmentEnd + 1 < indexes.length && Math.floor(indexes[segmentEnd + 1] / 7) === weekIndex) {
-        segmentEnd += 1;
-      }
-
-      const endIndex = indexes[segmentEnd];
-      const startColumn = (startIndex % 7) + 1;
-      const endColumn = (endIndex % 7) + 1;
-      const weekRows = occupiedRowsByWeek.get(weekIndex) ?? [];
-      let row = 0;
-
-      while (weekRows.some((item) => item.row === row && startColumn <= item.endColumn)) {
-        row += 1;
-      }
-
-      weekRows.push({ endColumn, row });
-      occupiedRowsByWeek.set(weekIndex, weekRows);
-
-      bars.push({
-        calendarColor: event.calendarColor,
-        calendarId: event.calendarId,
-        event,
-        row,
-        span: endColumn - startColumn + 1,
-        startColumn,
-        weekIndex,
-      });
-
-      segmentStart = segmentEnd + 1;
-    }
-  });
-
-  return bars;
-};
 
 type WorkHoursSectionProps = {
   isGoogleConnected: boolean;
@@ -272,8 +45,6 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
     if (status === 'half') return total + HALF_DAY_HOURS;
     return total;
   }, 0);
-  const paidLeaveCount = Object.values(leaveStatuses).filter((status) => status === 'paid').length;
-  const halfLeaveCount = Object.values(leaveStatuses).filter((status) => status === 'half').length;
   const adjustedWorkHours = workHoursData ? Math.max(0, workHoursData.workHours - paidLeaveHours) : 0;
   const excludedDisplayDays = useMemo(() => {
     const holidayItems = (holidaysData?.holidays ?? []).map((holiday) => ({
@@ -501,6 +272,11 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
     setSelectedDateDetail(null);
   };
 
+  const handleMonthChange = (nextMonth: string) => {
+    setMonth(nextMonth);
+    setLeaveStatuses({});
+  };
+
   // 対象日の勤務状態をモーダルから更新します。
   const setLeaveStatusForDate = (status: LeaveStatus) => {
     if (!selectedDateDetail || !canEditLeaveStatus) {
@@ -598,183 +374,28 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
       )}
 
       {showCalendar && workHoursData && (
-        <div className="mt-8 rounded-[2rem] border border-slate-100 bg-white/80 p-4 shadow-sm sm:p-6">
-          <div className="mb-5 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-            <div className="flex justify-start">
-              <button
-                type="button"
-                onClick={() => {
-                  setMonth((current) => shiftMonthValue(current, -1));
-                  setLeaveStatuses({});
-                }}
-                aria-label="前月を表示"
-                className="mt-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-600 shadow-sm transition hover:border-sky-300 hover:text-sky-600"
-              >
-                ←
-              </button>
-            </div>
-            <div className="min-w-0 text-center">
-              <h3 className="mt-2 text-xl font-black text-slate-900 sm:text-2xl">{month.replace('-', '年')}月のカレンダー</h3>
-              <p className="mt-2 text-xs font-bold text-slate-400">
-                {isGoogleConnected
-                  ? calendarLoading
-                    ? 'Googleカレンダーを同期中です。'
-                    : selectedCalendars.length > 0
-                      ? `${selectedCalendars.length}件のGoogleカレンダーを表示しています。`
-                      : 'Googleカレンダーの予定を表示しています。'
-                  : 'Googleログインすると、ここに Googleカレンダーの予定も表示されます。'}
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setMonth((current) => shiftMonthValue(current, 1));
-                  setLeaveStatuses({});
-                }}
-                aria-label="次月を表示"
-                className="mt-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-600 shadow-sm transition hover:border-sky-300 hover:text-sky-600"
-              >
-                →
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-1 sm:space-y-2">
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              {WEEK_LABELS.map((label) => (
-                <div key={label} className="px-1 pb-1 text-center text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:px-2 sm:pb-2 sm:text-[10px] sm:tracking-[0.2em]">
-                  {label}
-                </div>
-              ))}
-            </div>
-            {Array.from({ length: Math.ceil(calendarDays.length / 7) }, (_, weekIndex) => {
-              const weekDays = calendarDays.slice(weekIndex * 7, weekIndex * 7 + 7);
-              const weekBars = multiDayEventBars.filter((bar) => bar.weekIndex === weekIndex);
-              const barRows = weekBars.length > 0 ? Math.max(...weekBars.map((bar) => bar.row)) + 1 : 0;
-
-              return (
-                <div key={`week-${weekIndex}`} className="space-y-0">
-                  {barRows > 0 && (
-                    <div className="relative -mb-5 sm:-mb-6">
-                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                        {Array.from({ length: 7 }, (_, index) => (
-                          <div key={`week-${weekIndex}-bar-slot-${index}`} className="h-4 sm:h-5" />
-                        ))}
-                      </div>
-                      <div className="pointer-events-none absolute inset-0">
-                        {weekBars.map((bar) => (
-                          <div
-                            key={`${bar.calendarId ?? 'calendar'}-${bar.event.id}-${bar.weekIndex}-${bar.startColumn}`}
-                            className="absolute z-10 flex h-4 items-center overflow-hidden rounded-t-xl rounded-b-md px-2 text-[9px] font-black text-sky-950 shadow-sm sm:h-5 sm:text-[10px]"
-                            style={{
-                              backgroundColor: `${bar.calendarColor ?? '#dbeafe'}dd`,
-                              left: `calc((100% / 7) * ${bar.startColumn - 1})`,
-                              top: `${bar.row * 24 + 6}px`,
-                              width: `calc((100% / 7) * ${bar.span})`,
-                            }}
-                            title={bar.event.calendarName ? `${bar.event.calendarName}: ${bar.event.title}` : bar.event.title}
-                          >
-                            <span className="truncate">{bar.event.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ height: `${barRows * 24}px` }} />
-                    </div>
-                  )}
-                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                    {weekDays.map((date, index) => {
-                      if (!date) {
-                        return <div key={`empty-${weekIndex}-${index}`} className="h-14 rounded-[1.1rem] bg-transparent sm:h-18 sm:rounded-2xl" />;
-                      }
-
-                      const dateKey = formatDate(date);
-                      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                      const isHoliday = excludedDates.has(dateKey);
-                      const leaveStatus = leaveStatuses[dateKey] ?? 'working';
-                      const dailyEvents = (calendarEvents[dateKey] ?? []).filter((event) => !isMultiDayEvent(event, month));
-                      const stateClass = leaveStatus === 'paid'
-                        ? 'border-amber-200 bg-amber-100 text-amber-700'
-                        : leaveStatus === 'half'
-                          ? 'border-orange-200 bg-orange-100 text-orange-700'
-                          : isWeekend || isHoliday
-                            ? 'border-rose-100 bg-rose-50 text-rose-500'
-                            : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-amber-200 hover:bg-amber-50';
-
-                      return (
-                        <button
-                          key={dateKey}
-                          type="button"
-                          onClick={() => openDateDetail(date)}
-                          className={`h-18 w-full min-w-0 rounded-[0.95rem] border px-1 pt-1 pb-1 text-center transition sm:h-24 sm:rounded-[1.35rem] sm:px-2 sm:pt-2 sm:pb-2 ${stateClass} cursor-pointer active:scale-[0.98]`}
-                        >
-                          <div className="flex h-full min-w-0 flex-col items-center overflow-hidden">
-                            <span className="shrink-0 truncate text-[11px] font-black leading-none sm:text-xs">{date.getDate()}</span>
-                            <span className="mt-1 block truncate text-center text-[8px] leading-tight font-bold opacity-80 sm:text-[10px]">
-                              {leaveStatus === 'paid' ? '有給' : leaveStatus === 'half' ? '半休' : isWeekend || isHoliday ? '休日' : '勤務'}
-                            </span>
-                            {dailyEvents.length > 0 && (
-                              <div className="mt-1 w-full space-y-1">
-                                {dailyEvents.slice(0, 2).map((event) => (
-                                  <span
-                                    key={`${event.calendarId ?? 'calendar'}-${event.id}`}
-                                    className="block truncate rounded-full px-1.5 py-0.5 text-[8px] font-black text-sky-900 shadow-sm sm:text-[9px]"
-                                    style={{ backgroundColor: `${event.calendarColor ?? '#dbeafe'}cc` }}
-                                    title={event.calendarName ? `${event.calendarName}: ${event.title}` : event.title}
-                                  >
-                                    {event.title}
-                                  </span>
-                                ))}
-                                {dailyEvents.length > 2 && (
-                                  <span className="block text-[8px] font-black text-sky-700 sm:text-[9px]">
-                                    +{dailyEvents.length - 2}件
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <WorkCalendarView
+          calendarDays={calendarDays}
+          calendarEvents={calendarEvents}
+          calendarLoading={calendarLoading}
+          excludedDates={excludedDates}
+          isGoogleConnected={isGoogleConnected}
+          leaveStatuses={leaveStatuses}
+          month={month}
+          multiDayEventBars={multiDayEventBars}
+          onMonthChange={handleMonthChange}
+          onOpenDateDetail={openDateDetail}
+          selectedCalendarCount={selectedCalendars.length}
+        />
       )}
 
       {workHoursData && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-emerald-50 bg-emerald-50/40 p-5">
-            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">Adjusted Work Hours</p>
-            <p className="text-3xl font-black text-emerald-600">
-              {adjustedWorkHours} <span className="text-sm">時間</span>
-            </p>
-            <p className="mt-1 text-[10px] font-bold text-emerald-500 opacity-80">
-              {workHoursData.workHours} - {paidLeaveHours} = {adjustedWorkHours}
-            </p>
-            <p className="mt-2 text-[10px] font-bold text-emerald-600">
-              必須ライン: 140時間
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-indigo-50 bg-indigo-50/30 p-5">
-            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-indigo-400">Excluded Holidays</p>
-            {excludedDisplayDays.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {excludedDisplayDays.map((item) => (
-                  <span key={item.key} className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-500 shadow-sm">
-                    {item.label}
-                    {item.type === 'paid' ? ' 有給' : item.type === 'half' ? ' 半休' : ''}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs font-bold text-indigo-400 opacity-60 italic">なし</p>
-            )}
-          </div>
-        </div>
+        <WorkHoursSummary
+          adjustedWorkHours={adjustedWorkHours}
+          excludedDisplayDays={excludedDisplayDays}
+          paidLeaveHours={paidLeaveHours}
+          totalWorkHours={workHoursData.workHours}
+        />
       )}
 
       <form onSubmit={handleCalculate} className="mt-6 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
@@ -784,8 +405,7 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
             type="month"
             value={month}
             onChange={(e) => {
-              setMonth(e.target.value);
-              setLeaveStatuses({});
+              handleMonthChange(e.target.value);
             }}
             className="w-full rounded-2xl border-2 border-gray-50 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none transition-all focus:border-blue-400 focus:bg-white"
             required

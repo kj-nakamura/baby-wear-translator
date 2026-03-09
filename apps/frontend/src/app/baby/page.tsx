@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import RecommendationForm from '@/components/RecommendationForm';
+import RecommendationForm, { getInitialBirthDate } from '@/components/RecommendationForm';
 import RecommendationResult from '@/components/RecommendationResult';
 import { useMilestones } from '@/hooks/useMilestones';
 
 export default function BabyPage() {
+  const [birthDate, setBirthDate] = useState(getInitialBirthDate);
   const { data, loading, error, fetchMilestones } = useMilestones();
 
   const handleSubmit = (birthDate: string) => {
@@ -37,7 +39,11 @@ export default function BabyPage() {
           <div className="absolute -top-6 -left-2 select-none text-xs font-black uppercase tracking-widest text-blue-200">
             Setting
           </div>
-          <RecommendationForm onSubmit={handleSubmit} />
+          <RecommendationForm
+            birthDate={birthDate}
+            onBirthDateChange={setBirthDate}
+            onSubmit={handleSubmit}
+          />
         </section>
 
         {error && !loading && (
@@ -62,7 +68,7 @@ export default function BabyPage() {
               Growth Plan
             </div>
             <div className={loading ? 'pointer-events-none blur-[1px] grayscale-[0.5] opacity-40 transition-all duration-300' : 'transition-all duration-300'}>
-              <RecommendationResult result={data} />
+              <RecommendationResult birthDate={birthDate} result={data} />
             </div>
 
             {loading && (

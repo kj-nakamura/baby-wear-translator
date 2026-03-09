@@ -2,24 +2,7 @@
 
 import React from 'react';
 import Modal from '@/components/Modal';
-
-type LeaveStatus = 'working' | 'paid' | 'half';
-
-type CalendarEvent = {
-  allDay: boolean;
-  calendarColor?: string;
-  calendarId?: string;
-  calendarName?: string;
-  end: string;
-  id: string;
-  start: string;
-  title: string;
-};
-
-type SelectedDateDetail = {
-  date: Date;
-  dateKey: string;
-};
+import type { CalendarEvent, LeaveStatus, SelectedDateDetail } from '@/components/work/types';
 
 type CalendarDayDetailModalProps = {
   canEditLeaveStatus: boolean;

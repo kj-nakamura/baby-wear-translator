@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 interface RecommendationFormProps {
   onSubmit: (birthDate: string) => void;
+  birthDate: string;
+  onBirthDateChange: (birthDate: string) => void;
 }
 
 const BIRTH_DATE_STORAGE_KEY = 'baby-wear-translator.birth-date';
@@ -22,7 +24,7 @@ function todayString(): string {
   return formatDate(new Date());
 }
 
-function getInitialBirthDate(): string {
+export function getInitialBirthDate(): string {
   if (typeof window === 'undefined') {
     return DEFAULT_BIRTH_DATE;
   }
@@ -30,9 +32,7 @@ function getInitialBirthDate(): string {
   return window.localStorage.getItem(BIRTH_DATE_STORAGE_KEY) ?? DEFAULT_BIRTH_DATE;
 }
 
-const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => {
-  const [birthDate, setBirthDate] = useState(getInitialBirthDate);
-
+const RecommendationForm: React.FC<RecommendationFormProps> = ({ birthDate, onBirthDateChange, onSubmit }) => {
   useEffect(() => {
     window.localStorage.setItem(BIRTH_DATE_STORAGE_KEY, birthDate);
   }, [birthDate]);
@@ -53,7 +53,7 @@ const RecommendationForm: React.FC<RecommendationFormProps> = ({ onSubmit }) => 
           required
           max={todayString()}
           value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
+          onChange={(e) => onBirthDateChange(e.target.value)}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <p className="mt-1 text-xs text-gray-400">誕生日から2歳までの成長計画を表示します</p>

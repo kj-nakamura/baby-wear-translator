@@ -2,14 +2,7 @@
 
 import React from 'react';
 import Modal from '@/components/Modal';
-
-type CalendarOption = {
-  accessRole: string;
-  color: string;
-  id: string;
-  isPrimary: boolean;
-  name: string;
-};
+import type { CalendarOption } from '@/components/work/types';
 
 type CalendarSelectorModalProps = {
   calendarOptions: CalendarOption[];

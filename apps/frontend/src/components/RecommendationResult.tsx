@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import MonthCalendar from '@/components/calendar/MonthCalendar';
 import { MilestoneResponse, Milestone } from '@/hooks/useMilestones';
+import { buildCalendarDays, formatDate, getCurrentMonthValue } from '@/components/work/utils';
 
 interface RecommendationResultProps {
+    birthDate: string;
     result: MilestoneResponse;
 }
 
@@ -36,13 +39,15 @@ const SHOP_DISPLAY_NAMES: Record<string, string> = {
     'akachan_honpo': 'アカチャンホンポ',
 };
 
-const RecommendationResult: React.FC<RecommendationResultProps> = ({ result }) => {
+const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, result }) => {
+    const [month, setMonth] = useState(getCurrentMonthValue);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [selectedItem, setSelectedItem] = useState<Milestone['items'][0] | null>(null);
 
     // 検索結果（result）が更新されたら、選択を一番左（現在月）にリセットする
     React.useEffect(() => {
         setSelectedIndex(0);
+        setMonth(getCurrentMonthValue());
     }, [result]);
 
     // 現在日付の月次開始日を取得
@@ -54,6 +59,15 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result }) =
         const d = new Date(m.target_date);
         return d >= currentMonthStart;
     });
+    const calendarDays = useMemo(() => buildCalendarDays(month), [month]);
+    const milestonesByDate = useMemo(() => {
+        return displayedMilestones.reduce<Record<string, Milestone>>((accumulator, milestone) => {
+            accumulator[milestone.target_date] = milestone;
+            return accumulator;
+        }, {});
+    }, [displayedMilestones]);
+    const visibleMonthDateKey = `${month}-01`;
+    const visibleMonthMilestone = milestonesByDate[visibleMonthDateKey];
 
     const activeIndex = selectedIndex >= displayedMilestones.length ? 0 : selectedIndex;
     const selectedMilestone = displayedMilestones[activeIndex];
@@ -61,9 +75,143 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ result }) =
     if (!selectedMilestone) return null;
 
     const isInitial = selectedMilestone.items.length === 0;
+    const visibleMonthItems = visibleMonthMilestone?.items ?? [];
+    const visibleMonthIsInitial = !visibleMonthMilestone || visibleMonthItems.length === 0;
+
+    const handleMonthChange = (nextMonth: string) => {
+        setMonth(nextMonth);
+
+        const index = displayedMilestones.findIndex((milestone) => milestone.target_date === `${nextMonth}-01`);
+        if (index >= 0) {
+            setSelectedIndex(index);
+        }
+    };
 
     return (
         <div className="w-full space-y-8 animate-fade-in">
+            <div className="overflow-hidden rounded-[2rem] border border-blue-100 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_45%,#ffffff_100%)] shadow-sm">
+                <div className="border-b border-white/70 px-5 py-4 sm:px-6">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-500">Monthly Recommendation</p>
+                    <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 sm:text-2xl">
+                                {month.replace('-', '年')}月のおすすめ服
+                            </h3>
+                            <p className="mt-1 text-xs font-bold text-slate-500">
+                                現在設定されている誕生日: <span className="font-mono">{birthDate}</span>
+                            </p>
+                        </div>
+                        <div className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-black text-blue-600 shadow-sm">
+                            {visibleMonthMilestone ? visibleMonthMilestone.target_date : `${month}-01`}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-5 py-4 sm:px-6">
+                    {visibleMonthMilestone && (
+                        <div className="mb-4 grid gap-2 sm:grid-cols-3">
+                            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Age</p>
+                                <p className="mt-1 text-sm font-black text-slate-900">
+                                    生後 {visibleMonthMilestone.age_in_months} ヶ月頃
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Size</p>
+                                <p className="mt-1 text-sm font-black text-slate-900">
+                                    {visibleMonthMilestone.size}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Items</p>
+                                <p className="mt-1 text-sm font-black text-slate-900">
+                                    おすすめ {visibleMonthItems.length} 着
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {visibleMonthIsInitial ? (
+                        <p className="text-sm font-bold leading-7 text-slate-600">
+                            生年月日を入力すると、この月におすすめのベビー服がここに表示されます。
+                        </p>
+                    ) : (
+                        <div className="space-y-3">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-500">
+                                おすすめの服
+                            </p>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {visibleMonthItems.map((item, idx) => (
+                                    <button
+                                        key={`${item.universal_name}-${idx}`}
+                                        type="button"
+                                        onClick={() => setSelectedItem(item)}
+                                        className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                    >
+                                        <div
+                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-2xl"
+                                            style={{ backgroundColor: item.category_color }}
+                                        >
+                                            {item.category_emoji}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
+                                                {item.category_label}
+                                            </p>
+                                            <p className="truncate text-sm font-black text-slate-900">
+                                                {item.universal_name}
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <MonthCalendar
+                calendarDays={calendarDays}
+                month={month}
+                onMonthChange={handleMonthChange}
+                title={`${month.replace('-', '年')}月の成長カレンダー`}
+                subtitle="月ごとのおすすめサイズと服装候補を確認できます。"
+                renderDay={(date) => {
+                    const dateKey = formatDate(date);
+                    const milestone = milestonesByDate[dateKey];
+                    const isSelected = milestone && displayedMilestones[activeIndex]?.target_date === dateKey;
+
+                    return (
+                        <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => {
+                                const index = displayedMilestones.findIndex((item) => item.target_date === dateKey);
+                                if (index >= 0) {
+                                    setSelectedIndex(index);
+                                }
+                            }}
+                            className={`h-18 w-full rounded-[0.95rem] border px-1 py-1 text-left transition sm:h-24 sm:rounded-[1.35rem] sm:px-2 sm:py-2 ${milestone ? (isSelected ? 'border-blue-300 bg-blue-50 shadow-sm' : 'border-sky-100 bg-sky-50/70 hover:border-blue-200 hover:bg-blue-50') : 'border-slate-100 bg-slate-50 text-slate-300'}`}
+                        >
+                            <div className="flex h-full flex-col">
+                                <span className={`text-[11px] font-black leading-none sm:text-xs ${milestone ? 'text-slate-900' : 'text-slate-400'}`}>{date.getDate()}</span>
+                                {milestone ? (
+                                    <div className="mt-1 min-w-0">
+                                        <p className="truncate text-[8px] font-black text-blue-600 sm:text-[9px]">
+                                            {milestone.items.length === 0 ? '入力待ち' : `${milestone.age_in_months}ヶ月`}
+                                        </p>
+                                        <p className="mt-1 line-clamp-2 text-[8px] font-bold leading-tight text-slate-600 sm:text-[9px]">
+                                            {milestone.items.length === 0 ? 'おすすめ準備前' : milestone.size}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <span className="mt-auto text-[8px] font-bold text-slate-300 sm:text-[9px]">-</span>
+                                )}
+                            </div>
+                        </button>
+                    );
+                }}
+            />
+
             {/* タイムライン (横スクロール) */}
             <div className="relative pb-4">
                 <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar scroll-smooth px-4">

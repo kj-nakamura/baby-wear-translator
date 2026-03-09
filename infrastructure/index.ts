@@ -7,6 +7,7 @@ const region = gcp.config.region || "asia-northeast1";
 const authSecret = config.requireSecret("authSecret");
 const authGoogleId = config.requireSecret("authGoogleId");
 const authGoogleSecret = config.requireSecret("authGoogleSecret");
+const frontendBaseUrl = config.get("frontendBaseUrl");
 
 // Create a GCP resource (Storage Bucket)
 const bucket = new gcp.storage.Bucket("assets-bucket", {
@@ -128,6 +129,18 @@ const frontendService = new gcp.cloudrun.Service("baby-wear-frontend", {
                         name: "AUTH_GOOGLE_SECRET",
                         value: authGoogleSecret,
                     },
+                    ...(frontendBaseUrl
+                        ? [
+                            {
+                                name: "AUTH_URL",
+                                value: frontendBaseUrl,
+                            },
+                            {
+                                name: "NEXTAUTH_URL",
+                                value: frontendBaseUrl,
+                            },
+                        ]
+                        : []),
                 ],
             }],
         },

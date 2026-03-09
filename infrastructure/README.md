@@ -1,81 +1,49 @@
-# Pulumi GCP TypeScript Template
+# Infrastructure
 
-A minimal Google Cloud Storage bucket example using Pulumi and TypeScript. This template helps you get started quickly with a basic Pulumi program on GCP.
+GCP 上に各サービスをデプロイするための Pulumi 定義です。
 
-## Overview
+## 前提
 
-This template provisions a Google Cloud Storage bucket in the `US` region and exports its URL. It demonstrates how to use the Pulumi GCP provider with TypeScript.
+- Node.js
+- Pulumi CLI
+- GCP プロジェクト
+- GCP 認証設定
 
-## Providers
+## 必須設定
 
-- `@pulumi/pulumi`
-- `@pulumi/gcp`
+このスタックでは最低限、以下の Pulumi config が必要です。
 
-## Resources Created
+- `gcp:project`
+- `baby-wear-translator:authSecret`
+- `baby-wear-translator:authGoogleId`
+- `baby-wear-translator:authGoogleSecret`
+- `baby-wear-translator:frontendBaseUrl`
 
-- **Storage Bucket** (`gcp.storage.Bucket`)
+`frontendBaseUrl` は Google OAuth のコールバック URL を正しく組み立てるために必須です。  
+dev 環境でも実際にアクセスされるフロントエンドの公開 URL を入れてください。
 
-## Outputs
-
-- `bucketName` – The URL of the created Storage Bucket.
-
-## When to Use
-
-Use this template when you:
-- Want a quick, minimal example of provisioning GCP resources with Pulumi.
-- Are exploring Pulumi and TypeScript on Google Cloud.
-- Need a starting point for building more complex GCP infrastructure in TypeScript.
-
-## Prerequisites
-
-- Node.js installed on your machine.
-- Pulumi CLI installed.
-- A Google Cloud project.
-- GCP credentials configured (for example, via `gcloud auth login` or the `GOOGLE_APPLICATION_CREDENTIALS` environment variable).
-
-## Getting Started
-
-Create a new Pulumi project from this template:
 ```bash
-pulumi new gcp-typescript
-```
-Follow the interactive prompts to set:
-- Project name and description.
-- `gcp:project` (the target Google Cloud project ID).
-
-## Project Layout
-
-```
-.
-├── Pulumi.yaml         # Pulumi project definition and template metadata
-├── index.ts            # Entry point for the Pulumi program
-├── package.json        # Node.js dependencies and metadata
-└── tsconfig.json       # TypeScript compiler configuration
+pulumi config set gcp:project YOUR_GCP_PROJECT_ID
+pulumi config set --secret baby-wear-translator:authSecret YOUR_AUTH_SECRET
+pulumi config set --secret baby-wear-translator:authGoogleId YOUR_GOOGLE_CLIENT_ID
+pulumi config set --secret baby-wear-translator:authGoogleSecret YOUR_GOOGLE_CLIENT_SECRET
+pulumi config set baby-wear-translator:frontendBaseUrl https://YOUR_FRONTEND_HOST
 ```
 
-## Configuration
+例:
 
-This template recognizes the following configuration values:
-
-- `gcp:project` – The Google Cloud project where resources will be deployed.
-
-Set this value in your stack with:
 ```bash
-pulumi config set gcp:project YOUR_PROJECT_ID
+pulumi config set baby-wear-translator:frontendBaseUrl https://baby-wear-frontend-xxxxx-an.a.run.app
 ```
 
-## Next Steps
+## デプロイ
 
-- Customize the storage bucket (e.g., change location, storage class, access policies).
-- Add more GCP resources such as Compute Engine instances, Pub/Sub topics, or Firestore databases.
-- Explore the full Pulumi GCP provider documentation:
-  https://www.pulumi.com/docs/reference/pkg/gcp/
-- Learn more about Pulumi with TypeScript:
-  https://www.pulumi.com/docs/get-started/typescript/
+```bash
+npm install
+pulumi up
+```
 
-## Getting Help
+## メモ
 
-If you run into issues or have questions, check out:
-- Pulumi Documentation: https://www.pulumi.com/docs/
-- Community Slack: https://slack.pulumi.com/
-- GitHub Issues: https://github.com/pulumi/pulumi/issues
+`frontendBaseUrl` は Cloud Run の `AUTH_URL` と `NEXTAUTH_URL` に注入されます。  
+これが未設定だと、Google ログイン後の遷移先が `localhost` ベースで解決されることがあります。

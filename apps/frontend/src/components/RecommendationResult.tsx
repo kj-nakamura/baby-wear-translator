@@ -39,6 +39,18 @@ const SHOP_DISPLAY_NAMES: Record<string, string> = {
     'akachan_honpo': 'アカチャンホンポ',
 };
 
+const calculateAgeInMonths = (birthDate: string, targetDate: string) => {
+    const birth = new Date(birthDate);
+    const target = new Date(targetDate);
+
+    if (Number.isNaN(birth.getTime()) || Number.isNaN(target.getTime())) {
+        return null;
+    }
+
+    const months = (target.getFullYear() - birth.getFullYear()) * 12 + (target.getMonth() - birth.getMonth());
+    return Math.max(0, months);
+};
+
 const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, result }) => {
     const [month, setMonth] = useState(getCurrentMonthValue);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -66,22 +78,29 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
             return accumulator;
         }, {});
     }, [displayedMilestones]);
+    const milestonesByMonth = useMemo(() => {
+        return displayedMilestones.reduce<Record<string, Milestone>>((accumulator, milestone) => {
+            accumulator[milestone.target_date.slice(0, 7)] = milestone;
+            return accumulator;
+        }, {});
+    }, [displayedMilestones]);
     const visibleMonthDateKey = `${month}-01`;
-    const visibleMonthMilestone = milestonesByDate[visibleMonthDateKey];
+    const visibleMonthMilestone = milestonesByMonth[month];
+    const visibleMonthAge = calculateAgeInMonths(birthDate, visibleMonthMilestone?.target_date ?? visibleMonthDateKey);
+    const visibleMonthSize = visibleMonthMilestone?.size ?? '未設定';
 
     const activeIndex = selectedIndex >= displayedMilestones.length ? 0 : selectedIndex;
     const selectedMilestone = displayedMilestones[activeIndex];
 
     if (!selectedMilestone) return null;
 
-    const isInitial = selectedMilestone.items.length === 0;
     const visibleMonthItems = visibleMonthMilestone?.items ?? [];
     const visibleMonthIsInitial = !visibleMonthMilestone || visibleMonthItems.length === 0;
 
     const handleMonthChange = (nextMonth: string) => {
         setMonth(nextMonth);
 
-        const index = displayedMilestones.findIndex((milestone) => milestone.target_date === `${nextMonth}-01`);
+        const index = displayedMilestones.findIndex((milestone) => milestone.target_date.slice(0, 7) === nextMonth);
         if (index >= 0) {
             setSelectedIndex(index);
         }
@@ -101,68 +120,61 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
                                 現在設定されている誕生日: <span className="font-mono">{birthDate}</span>
                             </p>
                         </div>
-                        <div className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-black text-blue-600 shadow-sm">
-                            {visibleMonthMilestone ? visibleMonthMilestone.target_date : `${month}-01`}
-                        </div>
                     </div>
                 </div>
 
-                <div className="px-5 py-4 sm:px-6">
-                    {visibleMonthMilestone && (
-                        <div className="mb-4 grid gap-2 sm:grid-cols-3">
-                            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
-                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Age</p>
-                                <p className="mt-1 text-sm font-black text-slate-900">
-                                    生後 {visibleMonthMilestone.age_in_months} ヶ月頃
-                                </p>
-                            </div>
-                            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
-                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Size</p>
-                                <p className="mt-1 text-sm font-black text-slate-900">
-                                    {visibleMonthMilestone.size}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
-                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Items</p>
-                                <p className="mt-1 text-sm font-black text-slate-900">
-                                    おすすめ {visibleMonthItems.length} 着
-                                </p>
-                            </div>
+                <div className="px-5 py-5 sm:px-6">
+                    <div className="mb-4 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Age</p>
+                            <p className="mt-1 text-sm font-black text-slate-900">
+                                {visibleMonthAge !== null ? `生後 ${visibleMonthAge} ヶ月頃` : '計算不可'}
+                            </p>
                         </div>
-                    )}
+                        <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Size</p>
+                            <p className="mt-1 text-sm font-black text-slate-900">
+                                {visibleMonthSize}
+                            </p>
+                        </div>
+                    </div>
                     {visibleMonthIsInitial ? (
                         <p className="text-sm font-bold leading-7 text-slate-600">
                             生年月日を入力すると、この月におすすめのベビー服がここに表示されます。
                         </p>
                     ) : (
-                        <div className="space-y-3">
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-500">
-                                おすすめの服
-                            </p>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {visibleMonthItems.map((item, idx) => (
-                                    <button
-                                        key={`${item.universal_name}-${idx}`}
-                                        type="button"
-                                        onClick={() => setSelectedItem(item)}
-                                        className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                                    >
-                                        <div
-                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-2xl"
-                                            style={{ backgroundColor: item.category_color }}
+                        <div className="space-y-5">
+
+
+                            <div className="space-y-3">
+                                <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-500">
+                                    おすすめの服
+                                </p>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {visibleMonthItems.map((item, idx) => (
+                                        <button
+                                            key={`${item.universal_name}-${idx}`}
+                                            type="button"
+                                            onClick={() => setSelectedItem(item)}
+                                            className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                                         >
-                                            {item.category_emoji}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
-                                                {item.category_label}
-                                            </p>
-                                            <p className="truncate text-sm font-black text-slate-900">
-                                                {item.universal_name}
-                                            </p>
-                                        </div>
-                                    </button>
-                                ))}
+                                            <div
+                                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-2xl"
+                                                style={{ backgroundColor: item.category_color }}
+                                            >
+                                                {item.category_emoji}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">
+                                                    {item.category_label}
+                                                </p>
+                                                <p className="truncate text-sm font-black text-slate-900">
+                                                    {item.universal_name}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -226,72 +238,6 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
                 </div>
                 {/* 指示器 */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gray-100 -z-10" />
-            </div>
-
-            {/* 詳細表示区域 */}
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-6 text-white text-center">
-                    <div className="flex justify-center items-center gap-4 mb-2">
-                        <span className="text-4xl">{isInitial ? '🗓️' : '🍼'}</span>
-                        <div className="text-left">
-                            <p className="text-sm font-medium opacity-80">
-                                {isInitial ? '未来の成長ライン' : `生後 ${selectedMilestone.age_in_months} ヶ月頃`}
-                            </p>
-                            <h3 className="text-2xl font-black">
-                                {selectedMilestone.target_date} {isInitial ? 'の予定' : 'のおすすめ'}
-                            </h3>
-                        </div>
-                    </div>
-                    <div className="inline-block bg-white/20 backdrop-blur-md rounded-full px-4 py-1 text-sm font-bold">
-                        {isInitial ? '📏 サイズをチェック' : `📏 目安サイズ: ${selectedMilestone.size}`}
-                    </div>
-                </div>
-
-                <div className="p-6">
-                    {selectedMilestone.items.length > 0 ? (
-                        <div className="grid gap-4">
-                            {selectedMilestone.items.map((item, idx) => {
-                                return (
-                                    <div
-                                        key={idx}
-                                        onClick={() => setSelectedItem(item)}
-                                        className="flex items-center gap-4 p-4 rounded-2xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-lg hover:border-blue-100 transition-all group cursor-pointer"
-                                    >
-                                        <div
-                                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm group-hover:scale-110 transition-transform"
-                                            style={{ backgroundColor: item.category_color }}
-                                        >
-                                            {item.category_emoji}
-                                        </div>
-                                        <div className="flex-grow">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
-                                                {item.category_label}
-                                            </p>
-                                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                {item.universal_name}
-                                            </h4>
-                                            <p className="text-xs text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                                <span>ショップごとの名称を見る</span>
-                                                <span className="text-[10px]">▶</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 px-4 space-y-4">
-                            <div className="text-4xl">⌨️</div>
-                            <div>
-                                <p className="text-lg font-bold text-gray-900">生年月日を入力してください</p>
-                                <p className="text-sm text-gray-500">
-                                    上のフォームから誕生日を入力して「表示する」を押すと、<br />
-                                    その時期にぴったりのベビー服が表示されます。
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
             </div>
 
             {/* ショップ名表示モーダル */}

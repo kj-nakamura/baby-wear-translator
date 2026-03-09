@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 
 export const dynamic = 'force-dynamic';
+const JST_TIME_ZONE = 'Asia/Tokyo';
 
 type GoogleCalendarEvent = {
   id: string;
@@ -28,12 +29,14 @@ type GoogleCalendarListEntry = {
 // 対象月の開始日と終了日を Google Calendar API 向けに組み立てます。
 function buildMonthRange(month: string) {
   const [year, monthIndex] = month.split('-').map(Number);
-  const start = new Date(Date.UTC(year, monthIndex - 1, 1, 0, 0, 0));
-  const end = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0));
+  const start = `${year}-${`${monthIndex}`.padStart(2, '0')}-01T00:00:00+09:00`;
+  const endYear = monthIndex === 12 ? year + 1 : year;
+  const endMonth = monthIndex === 12 ? 1 : monthIndex + 1;
+  const end = `${endYear}-${`${endMonth}`.padStart(2, '0')}-01T00:00:00+09:00`;
 
   return {
-    timeMin: start.toISOString(),
-    timeMax: end.toISOString(),
+    timeMin: start,
+    timeMax: end,
   };
 }
 
@@ -108,6 +111,7 @@ export async function GET(request: NextRequest) {
   targetUrl.searchParams.set('orderBy', 'startTime');
   targetUrl.searchParams.set('timeMin', timeMin);
   targetUrl.searchParams.set('timeMax', timeMax);
+  targetUrl.searchParams.set('timeZone', JST_TIME_ZONE);
 
   try {
     const response = await fetch(targetUrl, {

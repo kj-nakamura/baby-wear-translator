@@ -9,6 +9,7 @@ const HOURS_PER_DAY = 8;
 const HALF_DAY_HOURS = 4;
 const WEEK_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 const SELECTED_CALENDAR_IDS_STORAGE_KEY = 'work-hours:selected-calendar-ids';
+const JST_TIME_ZONE = 'Asia/Tokyo';
 type LeaveStatus = 'working' | 'paid' | 'half';
 type CalendarEvent = {
   allDay: boolean;
@@ -31,12 +32,26 @@ type SelectedDateDetail = {
   date: Date;
   dateKey: string;
 };
+type MultiDayEventBar = {
+  calendarColor?: string;
+  calendarId?: string;
+  event: CalendarEvent;
+  row: number;
+  span: number;
+  startColumn: number;
+  weekIndex: number;
+};
 
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const parseDateKey = (value: string) => {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day);
 };
 
 const formatMonthDay = (dateKey: string) => {
@@ -60,12 +75,18 @@ const formatEventTime = (event: CalendarEvent) => {
     return '時刻未設定';
   }
 
-  const startText = `${`${start.getHours()}`.padStart(2, '0')}:${`${start.getMinutes()}`.padStart(2, '0')}`;
+  const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: JST_TIME_ZONE,
+  });
+  const startText = timeFormatter.format(start);
   if (!end || Number.isNaN(end.getTime())) {
     return startText;
   }
 
-  const endText = `${`${end.getHours()}`.padStart(2, '0')}:${`${end.getMinutes()}`.padStart(2, '0')}`;
+  const endText = timeFormatter.format(end);
   return `${startText} - ${endText}`;
 };
 
@@ -99,6 +120,124 @@ const shiftMonthValue = (value: string, diff: number) => {
   const [year, month] = value.split('-').map(Number);
   const date = new Date(year, month - 1 + diff, 1);
   return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`;
+};
+
+const getEventDateKeys = (event: CalendarEvent, visibleMonth: string) => {
+  const startKey = event.start.slice(0, 10);
+  if (!startKey) {
+    return [];
+  }
+
+  const startDate = parseDateKey(startKey);
+  const monthStart = parseDateKey(`${visibleMonth}-01`);
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+
+  if (!event.end) {
+    return [startKey];
+  }
+
+  const endBaseKey = event.end.slice(0, 10);
+  if (!endBaseKey) {
+    return [startKey];
+  }
+
+  const endDate = parseDateKey(endBaseKey);
+  if (event.allDay) {
+    endDate.setDate(endDate.getDate() - 1);
+  } else if (event.end.includes('T')) {
+    const rawEnd = new Date(event.end);
+    if (rawEnd.getHours() === 0 && rawEnd.getMinutes() === 0 && rawEnd.getSeconds() === 0 && rawEnd.getMilliseconds() === 0) {
+      endDate.setDate(endDate.getDate() - 1);
+    }
+  }
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return [startKey];
+  }
+
+  const rangeStart = startDate > monthStart ? startDate : monthStart;
+  const rangeEnd = endDate < monthEnd ? endDate : monthEnd;
+  if (rangeStart > rangeEnd) {
+    return [];
+  }
+
+  const dateKeys: string[] = [];
+  const cursor = new Date(rangeStart);
+  while (cursor <= rangeEnd) {
+    dateKeys.push(formatDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return dateKeys;
+};
+
+const isMultiDayEvent = (event: CalendarEvent, visibleMonth: string) => getEventDateKeys(event, visibleMonth).length > 1;
+
+const buildMultiDayEventBars = (days: Array<Date | null>, eventsByDate: Record<string, CalendarEvent[]>, visibleMonth: string) => {
+  const uniqueEvents = new Map<string, CalendarEvent>();
+
+  Object.values(eventsByDate).flat().forEach((event) => {
+    if (!isMultiDayEvent(event, visibleMonth)) {
+      return;
+    }
+
+    const eventKey = `${event.calendarId ?? 'calendar'}-${event.id}`;
+    if (!uniqueEvents.has(eventKey)) {
+      uniqueEvents.set(eventKey, event);
+    }
+  });
+
+  const occupiedRowsByWeek = new Map<number, Array<{ endColumn: number; row: number }>>();
+  const bars: MultiDayEventBar[] = [];
+
+  uniqueEvents.forEach((event) => {
+    const dateKeys = getEventDateKeys(event, visibleMonth);
+    const indexes = dateKeys
+      .map((dateKey) => days.findIndex((day) => day && formatDate(day) === dateKey))
+      .filter((index) => index >= 0);
+
+    if (indexes.length <= 1) {
+      return;
+    }
+
+    let segmentStart = 0;
+    while (segmentStart < indexes.length) {
+      const startIndex = indexes[segmentStart];
+      const weekIndex = Math.floor(startIndex / 7);
+      let segmentEnd = segmentStart;
+
+      while (segmentEnd + 1 < indexes.length && Math.floor(indexes[segmentEnd + 1] / 7) === weekIndex) {
+        segmentEnd += 1;
+      }
+
+      const endIndex = indexes[segmentEnd];
+      const startColumn = (startIndex % 7) + 1;
+      const endColumn = (endIndex % 7) + 1;
+      const weekRows = occupiedRowsByWeek.get(weekIndex) ?? [];
+      let row = 0;
+
+      while (weekRows.some((item) => item.row === row && startColumn <= item.endColumn)) {
+        row += 1;
+      }
+
+      weekRows.push({ endColumn, row });
+      occupiedRowsByWeek.set(weekIndex, weekRows);
+
+      bars.push({
+        calendarColor: event.calendarColor,
+        calendarId: event.calendarId,
+        event,
+        row,
+        span: endColumn - startColumn + 1,
+        startColumn,
+        weekIndex,
+      });
+
+      segmentStart = segmentEnd + 1;
+    }
+  });
+
+  return bars;
 };
 
 type WorkHoursSectionProps = {
@@ -158,6 +297,10 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
     () => calendarOptions.filter((calendar) => selectedCalendarIds.includes(calendar.id)),
     [calendarOptions, selectedCalendarIds]
   );
+  const multiDayEventBars = useMemo(
+    () => buildMultiDayEventBars(calendarDays, calendarEvents, month),
+    [calendarDays, calendarEvents, month]
+  );
   const selectedDateEvents = selectedDateDetail ? calendarEvents[selectedDateDetail.dateKey] ?? [] : [];
   const selectedLeaveStatus = selectedDateDetail ? leaveStatuses[selectedDateDetail.dateKey] ?? 'working' : 'working';
   const selectedDateIsWeekend = selectedDateDetail ? selectedDateDetail.date.getDay() === 0 || selectedDateDetail.date.getDay() === 6 : false;
@@ -193,12 +336,15 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
     if (!isGoogleConnected) {
       setCalendarOptions([]);
       setSelectedCalendarIds([]);
+      setCalendarError(null);
       return;
     }
 
     const controller = new AbortController();
 
     const fetchCalendars = async () => {
+      setCalendarError(null);
+
       try {
         const response = await fetch('/api/google-calendar?mode=calendars', {
           signal: controller.signal,
@@ -214,6 +360,7 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
 
         const calendars = body?.calendars ?? [];
         setCalendarOptions(calendars);
+        setCalendarError(null);
         setSelectedCalendarIds((current) => {
           const preferredIds = current.length > 0 ? current : storedCalendarIds;
           const filteredCurrent = preferredIds.filter((calendarId) => calendars.some((calendar) => calendar.id === calendarId));
@@ -299,13 +446,16 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
         }));
 
         const nextEvents = responses.flat().reduce<Record<string, CalendarEvent[]>>((accumulator, event) => {
-          const eventDate = (event.start || '').slice(0, 10);
-          if (!eventDate) {
+          const eventDateKeys = getEventDateKeys(event, month);
+          if (eventDateKeys.length === 0) {
             return accumulator;
           }
 
-          const existingEvents = accumulator[eventDate] ?? [];
-          accumulator[eventDate] = [...existingEvents, event];
+          eventDateKeys.forEach((eventDate) => {
+            const existingEvents = accumulator[eventDate] ?? [];
+            accumulator[eventDate] = [...existingEvents, event];
+          });
+
           return accumulator;
         }, {});
 
@@ -490,63 +640,104 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            {WEEK_LABELS.map((label) => (
-              <div key={label} className="px-1 pb-1 text-center text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:px-2 sm:pb-2 sm:text-[10px] sm:tracking-[0.2em]">
-                {label}
-              </div>
-            ))}
-            {calendarDays.map((date, index) => {
-              if (!date) {
-                return <div key={`empty-${index}`} className="h-14 rounded-[1.1rem] bg-transparent sm:h-18 sm:rounded-2xl" />;
-              }
-
-              const dateKey = formatDate(date);
-              const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-              const isHoliday = excludedDates.has(dateKey);
-              const leaveStatus = leaveStatuses[dateKey] ?? 'working';
-              const dailyEvents = calendarEvents[dateKey] ?? [];
-              const stateClass = leaveStatus === 'paid'
-                ? 'border-amber-200 bg-amber-100 text-amber-700'
-                : leaveStatus === 'half'
-                  ? 'border-orange-200 bg-orange-100 text-orange-700'
-                  : isWeekend || isHoliday
-                    ? 'border-rose-100 bg-rose-50 text-rose-500'
-                    : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-amber-200 hover:bg-amber-50';
+          <div className="space-y-1 sm:space-y-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              {WEEK_LABELS.map((label) => (
+                <div key={label} className="px-1 pb-1 text-center text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:px-2 sm:pb-2 sm:text-[10px] sm:tracking-[0.2em]">
+                  {label}
+                </div>
+              ))}
+            </div>
+            {Array.from({ length: Math.ceil(calendarDays.length / 7) }, (_, weekIndex) => {
+              const weekDays = calendarDays.slice(weekIndex * 7, weekIndex * 7 + 7);
+              const weekBars = multiDayEventBars.filter((bar) => bar.weekIndex === weekIndex);
+              const barRows = weekBars.length > 0 ? Math.max(...weekBars.map((bar) => bar.row)) + 1 : 0;
 
               return (
-                <button
-                  key={dateKey}
-                  type="button"
-                  onClick={() => openDateDetail(date)}
-                  className={`h-18 w-full min-w-0 rounded-[1.1rem] border px-1 py-1 text-center transition sm:h-24 sm:rounded-2xl sm:p-2 ${stateClass} cursor-pointer active:scale-[0.98]`}
-                >
-                  <div className="flex h-full min-w-0 flex-col items-center justify-center overflow-hidden">
-                    <span className="truncate text-[11px] font-black leading-none sm:text-xs">{date.getDate()}</span>
-                    <span className="mt-1 block truncate text-center text-[8px] leading-tight font-bold opacity-80 sm:text-[10px]">
-                      {leaveStatus === 'paid' ? '有給' : leaveStatus === 'half' ? '半休' : isWeekend || isHoliday ? '休日' : '勤務'}
-                    </span>
-                    {dailyEvents.length > 0 && (
-                      <div className="mt-1 w-full space-y-1">
-                        {dailyEvents.slice(0, 2).map((event) => (
-                          <span
-                            key={`${event.calendarId ?? 'calendar'}-${event.id}`}
-                            className="block truncate rounded-full px-1.5 py-0.5 text-[8px] font-black text-sky-900 shadow-sm sm:text-[9px]"
-                            style={{ backgroundColor: `${event.calendarColor ?? '#dbeafe'}cc` }}
-                            title={event.calendarName ? `${event.calendarName}: ${event.title}` : event.title}
-                          >
-                            {event.title}
-                          </span>
+                <div key={`week-${weekIndex}`} className="space-y-0">
+                  {barRows > 0 && (
+                    <div className="relative -mb-5 sm:-mb-6">
+                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                        {Array.from({ length: 7 }, (_, index) => (
+                          <div key={`week-${weekIndex}-bar-slot-${index}`} className="h-4 sm:h-5" />
                         ))}
-                        {dailyEvents.length > 2 && (
-                          <span className="block text-[8px] font-black text-sky-700 sm:text-[9px]">
-                            +{dailyEvents.length - 2}件
-                          </span>
-                        )}
                       </div>
-                    )}
+                      <div className="pointer-events-none absolute inset-0">
+                        {weekBars.map((bar) => (
+                          <div
+                            key={`${bar.calendarId ?? 'calendar'}-${bar.event.id}-${bar.weekIndex}-${bar.startColumn}`}
+                            className="absolute z-10 flex h-4 items-center overflow-hidden rounded-t-xl rounded-b-md px-2 text-[9px] font-black text-sky-950 shadow-sm sm:h-5 sm:text-[10px]"
+                            style={{
+                              backgroundColor: `${bar.calendarColor ?? '#dbeafe'}dd`,
+                              left: `calc((100% / 7) * ${bar.startColumn - 1})`,
+                              top: `${bar.row * 24 + 6}px`,
+                              width: `calc((100% / 7) * ${bar.span})`,
+                            }}
+                            title={bar.event.calendarName ? `${bar.event.calendarName}: ${bar.event.title}` : bar.event.title}
+                          >
+                            <span className="truncate">{bar.event.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ height: `${barRows * 24}px` }} />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                    {weekDays.map((date, index) => {
+                      if (!date) {
+                        return <div key={`empty-${weekIndex}-${index}`} className="h-14 rounded-[1.1rem] bg-transparent sm:h-18 sm:rounded-2xl" />;
+                      }
+
+                      const dateKey = formatDate(date);
+                      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                      const isHoliday = excludedDates.has(dateKey);
+                      const leaveStatus = leaveStatuses[dateKey] ?? 'working';
+                      const dailyEvents = (calendarEvents[dateKey] ?? []).filter((event) => !isMultiDayEvent(event, month));
+                      const stateClass = leaveStatus === 'paid'
+                        ? 'border-amber-200 bg-amber-100 text-amber-700'
+                        : leaveStatus === 'half'
+                          ? 'border-orange-200 bg-orange-100 text-orange-700'
+                          : isWeekend || isHoliday
+                            ? 'border-rose-100 bg-rose-50 text-rose-500'
+                            : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-amber-200 hover:bg-amber-50';
+
+                      return (
+                        <button
+                          key={dateKey}
+                          type="button"
+                          onClick={() => openDateDetail(date)}
+                          className={`h-18 w-full min-w-0 rounded-[0.95rem] border px-1 pt-1 pb-1 text-center transition sm:h-24 sm:rounded-[1.35rem] sm:px-2 sm:pt-2 sm:pb-2 ${stateClass} cursor-pointer active:scale-[0.98]`}
+                        >
+                          <div className="flex h-full min-w-0 flex-col items-center overflow-hidden">
+                            <span className="shrink-0 truncate text-[11px] font-black leading-none sm:text-xs">{date.getDate()}</span>
+                            <span className="mt-1 block truncate text-center text-[8px] leading-tight font-bold opacity-80 sm:text-[10px]">
+                              {leaveStatus === 'paid' ? '有給' : leaveStatus === 'half' ? '半休' : isWeekend || isHoliday ? '休日' : '勤務'}
+                            </span>
+                            {dailyEvents.length > 0 && (
+                              <div className="mt-1 w-full space-y-1">
+                                {dailyEvents.slice(0, 2).map((event) => (
+                                  <span
+                                    key={`${event.calendarId ?? 'calendar'}-${event.id}`}
+                                    className="block truncate rounded-full px-1.5 py-0.5 text-[8px] font-black text-sky-900 shadow-sm sm:text-[9px]"
+                                    style={{ backgroundColor: `${event.calendarColor ?? '#dbeafe'}cc` }}
+                                    title={event.calendarName ? `${event.calendarName}: ${event.title}` : event.title}
+                                  >
+                                    {event.title}
+                                  </span>
+                                ))}
+                                {dailyEvents.length > 2 && (
+                                  <span className="block text-[8px] font-black text-sky-700 sm:text-[9px]">
+                                    +{dailyEvents.length - 2}件
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

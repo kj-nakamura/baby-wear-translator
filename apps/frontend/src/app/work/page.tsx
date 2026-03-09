@@ -35,7 +35,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
             <GoogleAuthButtons
               callbackUrl={callbackUrl}
               imageUrl={session?.user?.image}
-              isAuthenticated={!!session?.user}
+              isAuthenticated={!!session?.accessToken}
               name={session?.user?.name}
             />
           </nav>
@@ -47,7 +47,7 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
           <div className="absolute -top-4 left-0 select-none text-[10px] font-black uppercase tracking-[0.3em] text-emerald-200 sm:-top-6 sm:-left-2 sm:text-xs sm:tracking-widest">
             Work
           </div>
-          <WorkHoursSection isGoogleConnected={!!session?.user} />
+          <WorkHoursSection isGoogleConnected={!!session?.accessToken} />
         </section>
       </main>
     </div>

@@ -8,6 +8,7 @@ import { useWorkHours } from '@/hooks/useWorkHours';
 const HOURS_PER_DAY = 8;
 const HALF_DAY_HOURS = 4;
 const WEEK_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+const SELECTED_CALENDAR_IDS_STORAGE_KEY = 'work-hours:selected-calendar-ids';
 type LeaveStatus = 'working' | 'paid' | 'half';
 type CalendarEvent = {
   allDay: boolean;
@@ -87,18 +88,32 @@ const buildCalendarDays = (month: string) => {
   return days;
 };
 
+const getCurrentMonthValue = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = `${now.getMonth() + 1}`.padStart(2, '0');
+  return `${year}-${month}`;
+};
+
+const shiftMonthValue = (value: string, diff: number) => {
+  const [year, month] = value.split('-').map(Number);
+  const date = new Date(year, month - 1 + diff, 1);
+  return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`;
+};
+
 type WorkHoursSectionProps = {
   isGoogleConnected: boolean;
 };
 
 // WorkHoursSection は稼働時間計算と Google カレンダーの月表示をまとめて扱います。
 const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }) => {
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [month, setMonth] = useState(getCurrentMonthValue);
+  const [showCalendar, setShowCalendar] = useState(true);
   const [showCalendarSelector, setShowCalendarSelector] = useState(false);
   const [leaveStatuses, setLeaveStatuses] = useState<Record<string, LeaveStatus>>({});
   const [calendarOptions, setCalendarOptions] = useState<CalendarOption[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([]);
+  const [storedCalendarIds, setStoredCalendarIds] = useState<string[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<Record<string, CalendarEvent[]>>({});
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
@@ -149,6 +164,30 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
   const selectedDateIsHoliday = selectedDateDetail ? excludedDates.has(selectedDateDetail.dateKey) : false;
   const canEditLeaveStatus = !!selectedDateDetail && !selectedDateIsWeekend && !selectedDateIsHoliday;
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(SELECTED_CALENDAR_IDS_STORAGE_KEY);
+      if (!storedValue) {
+        return;
+      }
+
+      const parsed = JSON.parse(storedValue);
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const nextStoredCalendarIds = parsed.filter((value): value is string => typeof value === 'string');
+      setStoredCalendarIds(nextStoredCalendarIds);
+      setSelectedCalendarIds(nextStoredCalendarIds);
+    } catch {
+      window.localStorage.removeItem(SELECTED_CALENDAR_IDS_STORAGE_KEY);
+    }
+  }, []);
+
   // 連携済みの Google カレンダー一覧を取得し、表示対象を選べるようにします。
   useEffect(() => {
     if (!isGoogleConnected) {
@@ -176,7 +215,8 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
         const calendars = body?.calendars ?? [];
         setCalendarOptions(calendars);
         setSelectedCalendarIds((current) => {
-          const filteredCurrent = current.filter((calendarId) => calendars.some((calendar) => calendar.id === calendarId));
+          const preferredIds = current.length > 0 ? current : storedCalendarIds;
+          const filteredCurrent = preferredIds.filter((calendarId) => calendars.some((calendar) => calendar.id === calendarId));
           if (filteredCurrent.length > 0) {
             return filteredCurrent;
           }
@@ -198,7 +238,20 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
     void fetchCalendars();
 
     return () => controller.abort();
-  }, [isGoogleConnected]);
+  }, [isGoogleConnected, storedCalendarIds]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!isGoogleConnected) {
+      window.localStorage.removeItem(SELECTED_CALENDAR_IDS_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(SELECTED_CALENDAR_IDS_STORAGE_KEY, JSON.stringify(selectedCalendarIds));
+  }, [isGoogleConnected, selectedCalendarIds]);
 
   // 月変更やログイン状態の変化に応じて Google カレンダーの予定を取得します。
   useEffect(() => {
@@ -314,15 +367,27 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
 
       return next;
     });
+
+    closeDateDetail();
   };
 
   const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
     if (month) {
-      fetchWorkHours(month);
+      void fetchWorkHours(month);
       setShowCalendar(true);
     }
   };
+
+  useEffect(() => {
+    if (!month) {
+      return;
+    }
+
+    setShowCalendar(true);
+    setSelectedDateDetail(null);
+    void fetchWorkHours(month);
+  }, [fetchWorkHours, month]);
 
   return (
     <div className="rounded-[2rem] border border-gray-100 bg-white/60 p-4 shadow-sm backdrop-blur-md transition-all hover:shadow-md sm:p-8">
@@ -331,52 +396,27 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
         <h2 className="text-base font-black text-gray-800 sm:text-lg">稼働時間計算 (Work Hours)</h2>
       </div>
 
-      <form onSubmit={handleCalculate} className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end lg:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto]">
-        <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-          <label className="ml-1 text-xs font-black uppercase tracking-widest text-gray-400">対象月</label>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => {
-              setMonth(e.target.value);
-              setLeaveStatuses({});
-              setShowCalendar(false);
-            }}
-            className="w-full rounded-2xl border-2 border-gray-50 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none transition-all focus:border-blue-400 focus:bg-white"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale sm:w-auto lg:self-stretch"
-        >
-          {loading ? '計算中...' : '計算する'}
-        </button>
-      </form>
-
       {isGoogleConnected && calendarOptions.length > 0 && (
         <div className="mt-4 grid gap-3">
-          <div className="flex items-center justify-between gap-3">
+          <div>
             <div>
               <p className="ml-1 text-xs font-black uppercase tracking-widest text-sky-500">表示するGoogleカレンダー</p>
               <p className="ml-1 mt-1 text-[11px] font-bold text-slate-400">
                 {selectedCalendars.length > 0 ? `${selectedCalendars.length}件を選択中` : '未選択'}
               </p>
             </div>
+          </div>
+          {selectedCalendars.length > 0 && (
             <button
               type="button"
               onClick={() => setShowCalendarSelector(true)}
               aria-expanded={showCalendarSelector}
-              aria-label="Googleカレンダーの表示設定を開く"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-200 bg-white text-lg text-sky-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50"
+              aria-label="選択中のGoogleカレンダー一覧を開く"
+              className="rounded-2xl bg-white/90 px-4 py-3 text-left text-xs font-bold text-slate-500 shadow-sm transition hover:bg-sky-50/80 hover:shadow-md"
             >
-              🗂️
-            </button>
-          </div>
-          {selectedCalendars.length > 0 && (
-            <div className="rounded-2xl bg-white/90 px-4 py-3 text-xs font-bold text-slate-500 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-sky-500">選択中</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-sky-500">選択中</p>
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {selectedCalendars.map((calendar) => (
                   <span key={calendar.id} className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1">
@@ -385,7 +425,7 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
                   </span>
                 ))}
               </div>
-            </div>
+            </button>
           )}
           {selectedCalendarIds.length === 0 && (
             <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700">
@@ -409,9 +449,21 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
 
       {showCalendar && workHoursData && (
         <div className="mt-8 rounded-[2rem] border border-slate-100 bg-white/80 p-4 shadow-sm sm:p-6">
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">Calendar</p>
+          <div className="mb-5 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+            <div className="flex justify-start">
+              <button
+                type="button"
+                onClick={() => {
+                  setMonth((current) => shiftMonthValue(current, -1));
+                  setLeaveStatuses({});
+                }}
+                aria-label="前月を表示"
+                className="mt-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-600 shadow-sm transition hover:border-sky-300 hover:text-sky-600"
+              >
+                ←
+              </button>
+            </div>
+            <div className="min-w-0 text-center">
               <h3 className="mt-2 text-xl font-black text-slate-900 sm:text-2xl">{month.replace('-', '年')}月のカレンダー</h3>
               <p className="mt-2 text-xs font-bold text-slate-400">
                 {isGoogleConnected
@@ -423,11 +475,18 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
                   : 'Googleログインすると、ここに Googleカレンダーの予定も表示されます。'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-wider">
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-500">通常勤務</span>
-              <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-500">休日・祝日</span>
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-600">有給</span>
-              <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-600">半休</span>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setMonth((current) => shiftMonthValue(current, 1));
+                  setLeaveStatuses({});
+                }}
+                aria-label="次月を表示"
+                className="mt-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-600 shadow-sm transition hover:border-sky-300 hover:text-sky-600"
+              >
+                →
+              </button>
             </div>
           </div>
 
@@ -509,26 +568,6 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
             </p>
           </div>
 
-          <div className="rounded-2xl border border-blue-50 bg-blue-50/30 p-5">
-            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-blue-400">Base Work Hours</p>
-            <p className="text-3xl font-black text-blue-600">
-              {workHoursData.workHours} <span className="text-sm">時間</span>
-            </p>
-            <p className="mt-1 text-[10px] font-bold text-blue-400 opacity-80">
-              (平日数 × 8時間)
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-amber-50 bg-amber-50/60 p-5">
-            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-amber-500">Paid Leave</p>
-            <p className="text-3xl font-black text-amber-600">
-              {paidLeaveCount} <span className="text-sm">日</span>
-            </p>
-            <p className="mt-1 text-[10px] font-bold text-amber-500 opacity-80">
-              半休 {halfLeaveCount} 日 / 合計 {paidLeaveHours} 時間控除
-            </p>
-          </div>
-
           <div className="rounded-2xl border border-indigo-50 bg-indigo-50/30 p-5">
             <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-indigo-400">Excluded Holidays</p>
             {excludedDisplayDays.length > 0 ? (
@@ -546,6 +585,29 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
           </div>
         </div>
       )}
+
+      <form onSubmit={handleCalculate} className="mt-6 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="space-y-2">
+          <label className="ml-1 text-xs font-black uppercase tracking-widest text-gray-400">対象月</label>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => {
+              setMonth(e.target.value);
+              setLeaveStatuses({});
+            }}
+            className="w-full rounded-2xl border-2 border-gray-50 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none transition-all focus:border-blue-400 focus:bg-white"
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-2xl bg-slate-900 px-8 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.98] disabled:opacity-50 disabled:grayscale sm:w-auto"
+        >
+          {loading ? '表示中...' : '表示する'}
+        </button>
+      </form>
 
       {showCalendarSelector && (
         <CalendarSelectorModal

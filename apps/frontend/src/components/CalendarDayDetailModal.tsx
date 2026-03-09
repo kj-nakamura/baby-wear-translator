@@ -60,9 +60,10 @@ const CalendarDayDetailModal: React.FC<CalendarDayDetailModalProps> = ({
       <button
         type="button"
         onClick={closeDateDetail}
-        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+        aria-label="モーダルを閉じる"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
       >
-        閉じる
+        ×
       </button>
     </div>
 

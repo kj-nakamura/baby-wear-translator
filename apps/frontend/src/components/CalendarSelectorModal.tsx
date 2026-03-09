@@ -27,18 +27,15 @@ const CalendarSelectorModal: React.FC<CalendarSelectorModalProps> = ({
   <Modal onClose={onClose} maxWidthClassName="max-w-lg">
     <div className="flex items-start justify-between gap-4">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-500">Calendar Select</p>
         <h3 className="mt-2 text-xl font-black text-slate-900">表示するGoogleカレンダー</h3>
-        <p className="mt-2 text-xs font-bold text-slate-400">
-          表示したいカレンダーを選択してください。
-        </p>
       </div>
       <button
         type="button"
         onClick={onClose}
-        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+        aria-label="モーダルを閉じる"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
       >
-        閉じる
+        ×
       </button>
     </div>
 

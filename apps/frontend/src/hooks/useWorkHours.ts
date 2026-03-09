@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export interface WorkHoursResponse {
   workHours: number;
@@ -18,7 +18,7 @@ export const useWorkHours = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWorkHours = async (month: string) => {
+  const fetchWorkHours = useCallback(async (month: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -49,7 +49,7 @@ export const useWorkHours = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return { workHoursData, holidaysData, loading, error, fetchWorkHours };
 };

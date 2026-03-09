@@ -16,6 +16,9 @@ services:
       - WATCHPACK_POLLING=true # Next.js ホットリロード用
       - BACKEND_API_URL=http://recommender:8080
       - WORK_HOURS_API_URL=http://work-hours:8081
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
 
   # 服の推薦・履歴管理サービス (Gin)
   recommender:

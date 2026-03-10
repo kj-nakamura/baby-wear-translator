@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../app';
+import { app } from '../app';
 import { calculatorService } from '../services/calculator.service';
 
 vi.mock('../services/calculator.service', () => {

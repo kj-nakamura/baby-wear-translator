@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CalendarDayDetailModal from '@/components/CalendarDayDetailModal';
 import CalendarSelectorModal from '@/components/CalendarSelectorModal';
 import { useWorkHours } from '@/hooks/useWorkHours';
-import type { CalendarEvent, CalendarOption, LeaveStatus, SelectedDateDetail } from '@/components/work/types';
+import type { CalendarEvent, CalendarOption, ExcludedDisplayDay, LeaveStatus, SelectedDateDetail } from '@/components/work/types';
 import { buildCalendarDays, buildMultiDayEventBars, formatDate, formatEventTime, formatFullDate, formatMonthDay, getCurrentMonthValue, getEventDateKeys } from '@/components/work/utils';
 import WorkCalendarView from '@/components/work/WorkCalendarView';
 import WorkHoursSummary from '@/components/work/WorkHoursSummary';
@@ -46,19 +46,19 @@ const WorkHoursSection: React.FC<WorkHoursSectionProps> = ({ isGoogleConnected }
     return total;
   }, 0);
   const adjustedWorkHours = workHoursData ? Math.max(0, workHoursData.workHours - paidLeaveHours) : 0;
-  const excludedDisplayDays = useMemo(() => {
-    const holidayItems = (holidaysData?.holidays ?? []).map((holiday) => ({
+  const excludedDisplayDays = useMemo<ExcludedDisplayDay[]>(() => {
+    const holidayItems: ExcludedDisplayDay[] = (holidaysData?.holidays ?? []).map((holiday) => ({
       key: `holiday-${holiday}`,
       label: holiday,
       type: 'holiday' as const,
     }));
-    const leaveItems = Object.entries(leaveStatuses)
+    const leaveItems: ExcludedDisplayDay[] = Object.entries(leaveStatuses)
       .filter(([, status]) => status === 'paid' || status === 'half')
       .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
       .map(([dateKey, status]) => ({
         key: `leave-${dateKey}`,
         label: formatMonthDay(dateKey),
-        type: status,
+        type: status as ExcludedDisplayDay['type'],
       }));
 
     return [...holidayItems, ...leaveItems];

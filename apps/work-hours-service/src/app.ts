@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import router from './handlers/index';
 
-const app = express();
+export const app = express();
 
 // ミドルウェア
 app.use(cors());

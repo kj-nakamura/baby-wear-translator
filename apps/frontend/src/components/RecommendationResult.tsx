@@ -101,8 +101,8 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
 
     return (
         <div className="w-full space-y-8 animate-fade-in">
-            <div className="overflow-hidden rounded-[2rem] border border-blue-100 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_45%,#ffffff_100%)] shadow-sm">
-                <div className="border-b border-white/70 px-5 py-4 sm:px-6">
+            <div className="w-full overflow-hidden rounded-[1.5rem] border border-blue-100 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_45%,#ffffff_100%)] shadow-sm sm:rounded-[2rem]">
+                <div className="border-b border-white/70 px-3 py-4 sm:px-6">
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-500">Monthly Recommendation</p>
                     <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
@@ -125,7 +125,7 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
                     </div>
                 </div>
 
-                <div className="px-5 py-5 sm:px-6">
+                <div className="px-3 py-4 sm:px-6 sm:py-5">
                     <div className="mb-4 grid gap-2 sm:grid-cols-3">
                         <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-400">Age</p>

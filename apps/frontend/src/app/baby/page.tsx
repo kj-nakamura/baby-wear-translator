@@ -17,7 +17,7 @@ export default function BabyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-sky-50">
       <header className="sticky top-0 z-10 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-4">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-0 py-4 sm:px-4">
           <div className="flex items-center gap-3">
             <span className="text-3xl animate-bounce-slow">🍼</span>
             <div>
@@ -34,7 +34,7 @@ export default function BabyPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-12 px-4 py-8">
+      <main className="mx-auto w-full max-w-2xl space-y-8 px-0 py-6 sm:space-y-12 sm:px-4 sm:py-8">
         {error && !loading && (
           <div className="flex items-start gap-4 rounded-3xl border border-red-100 bg-red-50/50 p-6 text-red-700 backdrop-blur-sm">
             <span className="mt-0.5 text-2xl">🚨</span>
@@ -52,7 +52,7 @@ export default function BabyPage() {
         )}
 
         {data && (
-          <section className="relative transition-all duration-500">
+          <section className="relative w-full transition-all duration-500">
             <div className="absolute -top-6 -left-2 select-none text-xs font-black uppercase tracking-widest text-indigo-200">
               Growth Plan
             </div>

@@ -47,3 +47,6 @@ pulumi up
 
 `frontendBaseUrl` は Cloud Run の `AUTH_URL` と `NEXTAUTH_URL` に注入されます。  
 これが未設定だと、Google ログイン後の遷移先が `localhost` ベースで解決されることがあります。
+
+このスタックは無料枠に収まりやすいよう、Cloud Run を `minScale=0` / `maxScale=1`、低リソース、Artifact Registry は最新3イメージ保持、GCS バケットは7日で自動削除に寄せています。  
+ただし、アクセス量や保存量が無料枠を超えると課金は発生するため、「完全無料」を保証するものではありません。

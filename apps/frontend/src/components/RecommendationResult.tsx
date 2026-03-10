@@ -1,36 +1,16 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Modal from '@/components/Modal';
 import MonthCalendar from '@/components/calendar/MonthCalendar';
 import { MilestoneResponse, Milestone } from '@/hooks/useMilestones';
 import { buildCalendarDays, formatDate, getCurrentMonthValue } from '@/components/work/utils';
 
 interface RecommendationResultProps {
     birthDate: string;
+    onBirthDateChange: (birthDate: string) => void;
     result: MilestoneResponse;
 }
-
-const MilestoneCard: React.FC<{ milestone: Milestone; isSelected: boolean; onClick: () => void }> = ({
-    milestone,
-    isSelected,
-    onClick,
-}) => {
-    return (
-        <div
-            onClick={onClick}
-            className={`flex-shrink-0 w-32 cursor-pointer transition-all duration-300 ${isSelected ? 'scale-105' : 'opacity-60 hover:opacity-100'
-                }`}
-        >
-            <div className={`h-1 mx-auto mb-4 rounded-full ${isSelected ? 'bg-blue-600 w-full' : 'bg-gray-200 w-1/2'}`} />
-            <div className="text-center">
-                <p className={`text-xs font-bold ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
-                    {milestone.target_date}
-                </p>
-                <p className="text-[10px] text-gray-400">{milestone.items.length === 0 ? '予定' : `${milestone.age_in_months}ヶ月`}</p>
-            </div>
-        </div>
-    );
-};
 
 // ショップ名を表示するためのフレンドリーな名前マップ
 const SHOP_DISPLAY_NAMES: Record<string, string> = {
@@ -51,16 +31,22 @@ const calculateAgeInMonths = (birthDate: string, targetDate: string) => {
     return Math.max(0, months);
 };
 
-const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, result }) => {
+const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, onBirthDateChange, result }) => {
     const [month, setMonth] = useState(getCurrentMonthValue);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [selectedItem, setSelectedItem] = useState<Milestone['items'][0] | null>(null);
+    const [isBirthDateModalOpen, setIsBirthDateModalOpen] = useState(false);
+    const [draftBirthDate, setDraftBirthDate] = useState(birthDate);
 
     // 検索結果（result）が更新されたら、選択を一番左（現在月）にリセットする
     React.useEffect(() => {
         setSelectedIndex(0);
         setMonth(getCurrentMonthValue());
     }, [result]);
+
+    React.useEffect(() => {
+        setDraftBirthDate(birthDate);
+    }, [birthDate]);
 
     // 現在日付の月次開始日を取得
     const now = new Date();
@@ -106,6 +92,13 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
         }
     };
 
+    const handleBirthDateSave = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        onBirthDateChange(draftBirthDate);
+        window.localStorage.setItem('baby-wear-translator.birth-date', draftBirthDate);
+        setIsBirthDateModalOpen(false);
+    };
+
     return (
         <div className="w-full space-y-8 animate-fade-in">
             <div className="overflow-hidden rounded-[2rem] border border-blue-100 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_45%,#ffffff_100%)] shadow-sm">
@@ -116,9 +109,18 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
                             <h3 className="text-xl font-black text-slate-900 sm:text-2xl">
                                 {month.replace('-', '年')}月のおすすめ服
                             </h3>
-                            <p className="mt-1 text-xs font-bold text-slate-500">
-                                現在設定されている誕生日: <span className="font-mono">{birthDate}</span>
-                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <p className="text-xs font-bold text-slate-500">
+                                    現在設定されている誕生日: <span className="font-mono">{birthDate}</span>
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBirthDateModalOpen(true)}
+                                    className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-[11px] font-black text-blue-600 transition hover:border-blue-300 hover:bg-white"
+                                >
+                                    誕生日を変更
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -224,79 +226,102 @@ const RecommendationResult: React.FC<RecommendationResultProps> = ({ birthDate, 
                 }}
             />
 
-            {/* タイムライン (横スクロール) */}
-            <div className="relative pb-4">
-                <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar scroll-smooth px-4">
-                    {displayedMilestones.map((m, idx) => (
-                        <MilestoneCard
-                            key={idx}
-                            milestone={m}
-                            isSelected={idx === activeIndex}
-                            onClick={() => setSelectedIndex(idx)}
-                        />
-                    ))}
-                </div>
-                {/* 指示器 */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gray-100 -z-10" />
-            </div>
-
             {/* ショップ名表示モーダル */}
             {selectedItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <Modal onClose={() => setSelectedItem(null)} maxWidthClassName="max-w-sm">
                     <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
-                        onClick={() => setSelectedItem(null)}
-                    />
-                    <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
-                        <div
-                            className="p-8 text-center relative overflow-hidden"
-                            style={{ backgroundColor: selectedItem.category_color || '#F3F4F6' }}
-                        >
-                            {/* 装飾用背景パターン */}
-                            <div className="absolute inset-0 opacity-10 pointer-events-none select-none text-[100px] flex items-center justify-center">
+                        className="relative -m-5 overflow-hidden rounded-t-[2rem] p-8 text-center sm:-m-6 sm:mb-0"
+                        style={{ backgroundColor: selectedItem.category_color || '#F3F4F6' }}
+                    >
+                        <div className="absolute inset-0 flex select-none items-center justify-center text-[100px] opacity-10 pointer-events-none">
+                            {selectedItem.category_emoji}
+                        </div>
+
+                        <div className="relative z-10 space-y-2">
+                            <div className="mb-2 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-white/90 text-4xl shadow-inner animate-bounce-slow">
                                 {selectedItem.category_emoji}
                             </div>
-
-                            <div className="relative z-10 space-y-2">
-                                <div className="inline-flex items-center justify-center w-20 h-20 bg-white/90 rounded-3xl shadow-inner text-4xl mb-2 animate-bounce-slow">
-                                    {selectedItem.category_emoji}
-                                </div>
-                                <h3 className="text-2xl font-black text-gray-900 leading-tight">{selectedItem.universal_name}</h3>
-                                <div className="inline-block px-3 py-1 bg-gray-900/5 rounded-full">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{selectedItem.category_label}</p>
-                                </div>
+                            <h3 className="text-2xl font-black leading-tight text-gray-900">{selectedItem.universal_name}</h3>
+                            <div className="inline-block rounded-full bg-gray-900/5 px-3 py-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">{selectedItem.category_label}</p>
                             </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <p className="text-sm font-bold text-gray-400 border-b pb-2">ショップごとの名称</p>
-                            <div className="space-y-4">
-                                {selectedItem.shop_names && selectedItem.shop_names.length > 0 ? (
-                                    selectedItem.shop_names.map((sn, idx) => (
-                                        <div key={idx} className="flex justify-between items-center group">
-                                            <div className="text-sm font-bold text-gray-500">
-                                                {SHOP_DISPLAY_NAMES[sn.shop_key] || sn.shop_key}
-                                            </div>
-                                            <div className="text-md font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                {sn.shop_name}
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                        <p className="text-sm font-bold text-gray-400">データがありません</p>
-                                        <p className="text-[10px] text-gray-400 mt-1">サーバーを再起動して最新の情報を反映してください</p>
-                                    </div>
-                                )}
-                            </div>
-                            <button
-                                onClick={() => setSelectedItem(null)}
-                                className="w-full mt-6 bg-gray-900 text-white font-black py-3 rounded-2xl hover:bg-gray-800 transition-all active:scale-95"
-                            >
-                                閉じる
-                            </button>
                         </div>
                     </div>
-                </div>
+                    <div className="mt-6 space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <p className="border-b pb-2 text-sm font-bold text-gray-400">ショップごとの名称</p>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedItem(null)}
+                                aria-label="モーダルを閉じる"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            {selectedItem.shop_names && selectedItem.shop_names.length > 0 ? (
+                                selectedItem.shop_names.map((sn, idx) => (
+                                    <div key={idx} className="group flex items-center justify-between">
+                                        <div className="text-sm font-bold text-gray-500">
+                                            {SHOP_DISPLAY_NAMES[sn.shop_key] || sn.shop_key}
+                                        </div>
+                                        <div className="text-md font-black text-gray-900 transition-colors group-hover:text-blue-600">
+                                            {sn.shop_name}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-6 text-center">
+                                    <p className="text-sm font-bold text-gray-400">データがありません</p>
+                                    <p className="mt-1 text-[10px] text-gray-400">サーバーを再起動して最新の情報を反映してください</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {isBirthDateModalOpen && (
+                <Modal onClose={() => setIsBirthDateModalOpen(false)} maxWidthClassName="max-w-md">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-500">Birth Date</p>
+                            <h3 className="mt-2 text-xl font-black text-slate-900">誕生日を設定</h3>
+                            <p className="mt-2 text-sm font-bold text-slate-500">保存すると成長計画を自動で更新します。</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsBirthDateModalOpen(false)}
+                            aria-label="モーダルを閉じる"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <form onSubmit={handleBirthDateSave} className="mt-6 space-y-4">
+                        <div>
+                            <label htmlFor="birth-date-modal-input" className="block text-sm font-bold text-slate-700">
+                                赤ちゃんの生年月日
+                            </label>
+                            <input
+                                id="birth-date-modal-input"
+                                type="date"
+                                required
+                                max={new Date().toISOString().slice(0, 10)}
+                                value={draftBirthDate}
+                                onChange={(event) => setDraftBirthDate(event.target.value)}
+                                className="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+                        >
+                            この誕生日で更新
+                        </button>
+                    </form>
+                </Modal>
             )}
         </div>
     );

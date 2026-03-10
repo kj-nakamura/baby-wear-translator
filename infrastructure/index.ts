@@ -8,11 +8,37 @@ const authSecret = config.requireSecret("authSecret");
 const authGoogleId = config.requireSecret("authGoogleId");
 const authGoogleSecret = config.requireSecret("authGoogleSecret");
 const frontendBaseUrl = config.get("frontendBaseUrl");
+const lowCostServiceTemplate = {
+    metadata: {
+        annotations: {
+            "autoscaling.knative.dev/minScale": "0",
+            "autoscaling.knative.dev/maxScale": "1",
+            "run.googleapis.com/cpu-throttling": "true",
+        },
+    },
+    spec: {
+        containerConcurrency: 1,
+        timeoutSeconds: 30,
+    },
+} as const;
 
 // Create a GCP resource (Storage Bucket)
 const bucket = new gcp.storage.Bucket("assets-bucket", {
     location: region,
+    storageClass: "STANDARD",
     forceDestroy: true, // For development purposes
+    uniformBucketLevelAccess: true,
+    publicAccessPrevention: "enforced",
+    lifecycleRules: [
+        {
+            action: {
+                type: "Delete",
+            },
+            condition: {
+                age: 7,
+            },
+        },
+    ],
 });
 
 // Artifact Registry to store Docker images for our services
@@ -21,6 +47,33 @@ const repository = new gcp.artifactregistry.Repository("app-repo", {
     location: region,
     repositoryId: "baby-wear-translator",
     description: "Docker repository for Baby Wear Translator services",
+    cleanupPolicyDryRun: false,
+    cleanupPolicies: [
+        {
+            id: "delete-old-images",
+            action: "DELETE",
+            condition: {
+                packageNamePrefixes: [
+                    "go-recommender-service",
+                    "node-work-hours-service",
+                    "ts-frontend",
+                ],
+                tagState: "ANY",
+            },
+        },
+        {
+            id: "keep-latest-3-images",
+            action: "KEEP",
+            mostRecentVersions: {
+                packageNamePrefixes: [
+                    "go-recommender-service",
+                    "node-work-hours-service",
+                    "ts-frontend",
+                ],
+                keepCount: 3,
+            },
+        },
+    ],
 });
 
 // レジストリのURLを組み立て (repository.project を使うと確実です)
@@ -44,10 +97,19 @@ const recommenderServiceImage = new docker.Image("go-recommender-service-img", {
 const recommenderService = new gcp.cloudrun.Service("baby-wear-backend", {
     location: region,
     template: {
+        metadata: lowCostServiceTemplate.metadata,
         spec: {
+            containerConcurrency: lowCostServiceTemplate.spec.containerConcurrency,
+            timeoutSeconds: lowCostServiceTemplate.spec.timeoutSeconds,
             containers: [{
                 image: recommenderServiceImage.imageName,
                 ports: [{ containerPort: 8080 }],
+                resources: {
+                    limits: {
+                        cpu: "0.08",
+                        memory: "128Mi",
+                    },
+                },
                 envs: [
                     { name: "ALLOWED_ORIGINS", value: "*" }, // シンプル化のため一旦全て許可
                 ],
@@ -75,10 +137,19 @@ const workHoursServiceImage = new docker.Image("node-work-hours-service-img", {
 const workHoursService = new gcp.cloudrun.Service("baby-wear-work-hours", {
     location: region,
     template: {
+        metadata: lowCostServiceTemplate.metadata,
         spec: {
+            containerConcurrency: lowCostServiceTemplate.spec.containerConcurrency,
+            timeoutSeconds: lowCostServiceTemplate.spec.timeoutSeconds,
             containers: [{
                 image: workHoursServiceImage.imageName,
                 ports: [{ containerPort: 8081 }],
+                resources: {
+                    limits: {
+                        cpu: "0.08",
+                        memory: "128Mi",
+                    },
+                },
             }],
         },
     },
@@ -104,10 +175,19 @@ const frontendImage = new docker.Image("ts-frontend-img", {
 const frontendService = new gcp.cloudrun.Service("baby-wear-frontend", {
     location: region,
     template: {
+        metadata: lowCostServiceTemplate.metadata,
         spec: {
+            containerConcurrency: lowCostServiceTemplate.spec.containerConcurrency,
+            timeoutSeconds: lowCostServiceTemplate.spec.timeoutSeconds,
             containers: [{
                 image: frontendImage.imageName,
                 ports: [{ containerPort: 3000 }], // DockerfileのEXPOSE 3000に合わせる
+                resources: {
+                    limits: {
+                        cpu: "0.08",
+                        memory: "256Mi",
+                    },
+                },
                 envs: [
                     { 
                         name: "BACKEND_API_URL", 

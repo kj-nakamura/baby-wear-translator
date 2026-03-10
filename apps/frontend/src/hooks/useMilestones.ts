@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { components } from '@/types/openapi';
 
 export type Milestone = components['schemas']['Milestone'];
@@ -29,7 +29,7 @@ export const useMilestones = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMilestones = async (birthDate: string) => {
+  const fetchMilestones = useCallback(async (birthDate: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -55,7 +55,7 @@ export const useMilestones = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return { data, loading, error, fetchMilestones };
 };

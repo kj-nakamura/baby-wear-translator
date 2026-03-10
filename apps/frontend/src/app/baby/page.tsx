@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import RecommendationForm, { getInitialBirthDate } from '@/components/RecommendationForm';
+import { getInitialBirthDate } from '@/components/RecommendationForm';
 import RecommendationResult from '@/components/RecommendationResult';
 import { useMilestones } from '@/hooks/useMilestones';
 
@@ -10,9 +10,9 @@ export default function BabyPage() {
   const [birthDate, setBirthDate] = useState(getInitialBirthDate);
   const { data, loading, error, fetchMilestones } = useMilestones();
 
-  const handleSubmit = (birthDate: string) => {
-    fetchMilestones(birthDate);
-  };
+  useEffect(() => {
+    void fetchMilestones(birthDate);
+  }, [birthDate, fetchMilestones]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-sky-50">
@@ -35,17 +35,6 @@ export default function BabyPage() {
       </header>
 
       <main className="mx-auto max-w-2xl space-y-12 px-4 py-8">
-        <section className="relative">
-          <div className="absolute -top-6 -left-2 select-none text-xs font-black uppercase tracking-widest text-blue-200">
-            Setting
-          </div>
-          <RecommendationForm
-            birthDate={birthDate}
-            onBirthDateChange={setBirthDate}
-            onSubmit={handleSubmit}
-          />
-        </section>
-
         {error && !loading && (
           <div className="flex items-start gap-4 rounded-3xl border border-red-100 bg-red-50/50 p-6 text-red-700 backdrop-blur-sm">
             <span className="mt-0.5 text-2xl">🚨</span>
@@ -68,7 +57,11 @@ export default function BabyPage() {
               Growth Plan
             </div>
             <div className={loading ? 'pointer-events-none blur-[1px] grayscale-[0.5] opacity-40 transition-all duration-300' : 'transition-all duration-300'}>
-              <RecommendationResult birthDate={birthDate} result={data} />
+              <RecommendationResult
+                birthDate={birthDate}
+                onBirthDateChange={setBirthDate}
+                result={data}
+              />
             </div>
 
             {loading && (
